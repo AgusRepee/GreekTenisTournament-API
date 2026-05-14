@@ -61,6 +61,17 @@ enum PlayerRosterStatus {
   hidden
 }
 
+/// Usuarios administradores del panel. Contraseñas siempre hasheadas.
+model AdminUser {
+  id           String   @id @default(cuid()) @db.VarChar(32)
+  username     String   @unique @db.VarChar(128)
+  passwordHash String   @db.VarChar(255)
+  role         String   @default("admin") @db.VarChar(32)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 /// Jugadores del club (perfil + categoría).
 model Player {
   id               String              @id @db.VarChar(64)

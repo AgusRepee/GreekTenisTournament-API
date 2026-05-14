@@ -23,7 +23,7 @@ Entry file: dist/index.js
 Build:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run build
 ```
 
 Start:
@@ -39,8 +39,13 @@ DATABASE_URL
 PORT
 JWT_SECRET
 ADMIN_PASSWORD
+ADMIN_SEED_USERNAME
+ADMIN_SEED_PASSWORD
 CORS_ORIGIN
 ```
+
+`ADMIN_PASSWORD` queda solo como fallback temporal mientras no exista ningún usuario en `AdminUser`.
+El usuario real se crea o actualiza con `npm run admin:seed`, usando `ADMIN_SEED_USERNAME` y `ADMIN_SEED_PASSWORD`.
 
 ## Frontend Hostinger HTML
 
@@ -70,6 +75,12 @@ VITE_API_URL=https://api.greektennis.com
 GET https://api.greektennis.com/api/public/home
 
 POST https://api.greektennis.com/api/admin/auth/login
+
+Body:
+
+```json
+{ "username": "admin", "password": "TU_PASSWORD_ADMIN" }
+```
 
 Abrir https://greektennis.com
 

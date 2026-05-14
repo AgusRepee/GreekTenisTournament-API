@@ -14,10 +14,12 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "admin:seed": "tsx src/scripts/seedAdminUser.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

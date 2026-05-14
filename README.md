@@ -48,7 +48,7 @@ Entry file: dist/index.js
 Build command:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run build
 ```
 
 Start command:
@@ -64,7 +64,16 @@ DATABASE_URL
 PORT
 JWT_SECRET
 ADMIN_PASSWORD
+ADMIN_SEED_USERNAME
+ADMIN_SEED_PASSWORD
 CORS_ORIGIN
+```
+
+`ADMIN_PASSWORD` es un fallback temporal si todavía no existe ningún usuario en la tabla `AdminUser`.
+Para crear o actualizar el admin real con contraseña hasheada:
+
+```bash
+ADMIN_SEED_USERNAME=admin ADMIN_SEED_PASSWORD=tu_password_seguro npm run admin:seed
 ```
 
 ## Test endpoints
@@ -72,3 +81,9 @@ CORS_ORIGIN
 GET /api/public/home  
 GET /api/public/rankings  
 POST /api/admin/auth/login
+
+Body de login:
+
+```json
+{ "username": "admin", "password": "tu_password_seguro" }
+```
