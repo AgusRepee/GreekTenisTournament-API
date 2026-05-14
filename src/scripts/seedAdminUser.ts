@@ -6,6 +6,7 @@ const SALT_ROUNDS = 12;
 
 async function main() {
   const username = process.env.ADMIN_SEED_USERNAME?.trim() || 'admin';
+  const email = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase() || 'agustinrepecka@gmail.com';
   const password = process.env.ADMIN_SEED_PASSWORD ?? process.env.ADMIN_PASSWORD;
 
   if (!password?.trim()) {
@@ -17,18 +18,20 @@ async function main() {
     where: { username },
     create: {
       username,
+      email,
       passwordHash,
       role: 'admin',
       isActive: true,
     },
     update: {
+      email,
       passwordHash,
       role: 'admin',
       isActive: true,
     },
   });
 
-  console.log(`Admin user listo: ${admin.username}`);
+  console.log(`Admin user listo: ${admin.email ?? admin.username}`);
 }
 
 main()

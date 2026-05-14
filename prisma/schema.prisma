@@ -65,11 +65,28 @@ enum PlayerRosterStatus {
 model AdminUser {
   id           String   @id @default(cuid()) @db.VarChar(32)
   username     String   @unique @db.VarChar(128)
+  email        String?  @unique @db.VarChar(255)
   passwordHash String   @db.VarChar(255)
   role         String   @default("admin") @db.VarChar(32)
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  passwordResetTokens AdminPasswordResetToken[]
+}
+
+model AdminPasswordResetToken {
+  id          String    @id @default(cuid()) @db.VarChar(32)
+  adminUserId String    @db.VarChar(32)
+  tokenHash   String    @unique @db.VarChar(64)
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([adminUserId])
+  @@index([expiresAt])
 }
 
 /// Jugadores del club (perfil + categoría).

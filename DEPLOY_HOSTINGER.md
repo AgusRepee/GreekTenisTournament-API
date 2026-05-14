@@ -40,12 +40,30 @@ PORT
 JWT_SECRET
 ADMIN_PASSWORD
 ADMIN_SEED_USERNAME
+ADMIN_SEED_EMAIL
 ADMIN_SEED_PASSWORD
 CORS_ORIGIN
+APP_URL
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
+SMTP_FROM
 ```
 
 `ADMIN_PASSWORD` queda solo como fallback temporal mientras no exista ningún usuario en `AdminUser`.
-El usuario real se crea o actualiza con `npm run admin:seed`, usando `ADMIN_SEED_USERNAME` y `ADMIN_SEED_PASSWORD`.
+El usuario real se crea o actualiza con `npm run admin:seed`, usando `ADMIN_SEED_USERNAME`, `ADMIN_SEED_EMAIL` y `ADMIN_SEED_PASSWORD`.
+
+Para la primera prueba:
+
+```txt
+ADMIN_SEED_USERNAME=admin
+ADMIN_SEED_EMAIL=agustinrepecka@gmail.com
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USER=contacto@greektennis.com
+SMTP_FROM="Greek Tennis <contacto@greektennis.com>"
+```
 
 ## Frontend Hostinger HTML
 
@@ -79,7 +97,14 @@ POST https://api.greektennis.com/api/admin/auth/login
 Body:
 
 ```json
-{ "username": "admin", "password": "TU_PASSWORD_ADMIN" }
+{ "email": "agustinrepecka@gmail.com", "password": "TU_PASSWORD_ADMIN" }
+```
+
+Recuperar contraseña:
+
+```txt
+POST https://api.greektennis.com/api/admin/auth/forgot-password
+POST https://api.greektennis.com/api/admin/auth/reset-password
 ```
 
 Abrir https://greektennis.com

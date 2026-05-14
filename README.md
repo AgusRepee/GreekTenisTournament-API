@@ -65,16 +65,25 @@ PORT
 JWT_SECRET
 ADMIN_PASSWORD
 ADMIN_SEED_USERNAME
+ADMIN_SEED_EMAIL
 ADMIN_SEED_PASSWORD
 CORS_ORIGIN
+APP_URL
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASS
+SMTP_FROM
 ```
 
 `ADMIN_PASSWORD` es un fallback temporal si todavía no existe ningún usuario en la tabla `AdminUser`.
 Para crear o actualizar el admin real con contraseña hasheada:
 
 ```bash
-ADMIN_SEED_USERNAME=admin ADMIN_SEED_PASSWORD=tu_password_seguro npm run admin:seed
+ADMIN_SEED_USERNAME=admin ADMIN_SEED_EMAIL=agustinrepecka@gmail.com ADMIN_SEED_PASSWORD=tu_password_seguro npm run admin:seed
 ```
+
+El recuperador de contraseña usa SMTP. En Hostinger, configurar `SMTP_USER=contacto@greektennis.com` y `SMTP_PASS` con la contraseña real del buzón.
 
 ## Test endpoints
 
@@ -85,5 +94,10 @@ POST /api/admin/auth/login
 Body de login:
 
 ```json
-{ "username": "admin", "password": "tu_password_seguro" }
+{ "email": "agustinrepecka@gmail.com", "password": "tu_password_seguro" }
 ```
+
+Recuperación:
+
+POST /api/admin/auth/forgot-password  
+POST /api/admin/auth/reset-password
