@@ -48,7 +48,7 @@ Entry file: dist/index.js
 Build command:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run build
 ```
 
 Start command:
@@ -109,3 +109,11 @@ npm run data:seed:liga2
 ```
 
 Este seed es idempotente y actualiza únicamente Liga 2 (`t-novak-l2`): grupos, jugadores, partidos y resultados disponibles. No modifica Liga 1 ni `t-novak`.
+
+## Seed Liga 5 ND 2026
+
+```bash
+npm run data:seed:liga5nd
+```
+
+Este seed es idempotente y actualiza únicamente `Liga 5 ND 2026` (`t-liga5-nd-2026`): grupos, jugadores, partidos, agenda y resultados disponibles. No modifica Liga 1, Liga 2 ni torneos Novak.

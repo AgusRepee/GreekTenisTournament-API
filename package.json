@@ -16,7 +16,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "admin:seed": "tsx src/scripts/seedAdminUser.ts",
-    "data:seed:liga2": "tsx src/scripts/seedLiga2Tournament.ts"
+    "data:seed:liga2": "tsx src/scripts/seedLiga2Tournament.ts",
+    "data:seed:liga5nd": "tsx src/scripts/seedLiga5Nd2026Tournament.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
