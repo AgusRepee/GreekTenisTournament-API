@@ -23,7 +23,7 @@ Entry file: dist/index.js
 Build:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run build
 ```
 
 Start:
@@ -116,3 +116,8 @@ Programar partido
 Recargar
 
 Ver persistencia
+
+## Seed Liga 2
+
+El comando `npm run data:seed:liga2` crea o actualiza únicamente Liga 2 (`t-novak-l2`), sus grupos, jugadores, partidos y resultados.
+No toca Liga 1 ni `t-novak`.

@@ -46,7 +46,14 @@ function validateRegularSet(a: number, b: number, hasTiebreakInfo: boolean): str
   return null;
 }
 
-function parseScoreSegment(segmentRaw: string): ParsedSetLite | null {
+function validatePartialRegularSet(a: number, b: number): string | null {
+  if (a < 0 || b < 0) return 'No se permiten valores negativos.';
+  if (a === b) return 'No puede haber empate en el set parcial.';
+  if (Math.max(a, b) > 7) return 'El set parcial no puede superar 7 games.';
+  return null;
+}
+
+function parseScoreSegment(segmentRaw: string, options?: { allowPartialRegularSet?: boolean }): ParsedSetLite | null {
   const segment = segmentRaw.trim().toUpperCase();
   const tbMatch = segment.match(/^(\d+)-(\d+)\((\d+)\)$/);
   if (tbMatch) {
@@ -66,7 +73,9 @@ function parseScoreSegment(segmentRaw: string): ParsedSetLite | null {
     if (err) return null;
     return { gamesA, gamesB, isMatchTiebreak: true };
   }
-  const err = validateRegularSet(gamesA, gamesB, false);
+  const err = options?.allowPartialRegularSet
+    ? validatePartialRegularSet(gamesA, gamesB)
+    : validateRegularSet(gamesA, gamesB, false);
   if (err) return null;
   return { gamesA, gamesB, isMatchTiebreak: false };
 }
@@ -102,9 +111,11 @@ export function parseKoPlayedScoreDetail(scoreRaw: string, isRetired: boolean): 
   const score = scoreRaw.replace(/\s+/g, ' ').trim().toUpperCase();
   if (!score) return { ok: false, error: 'El marcador está vacío.' };
 
-  const cleaned = score.replace(/\bRET\.?\b/g, '').trim();
+  const retiredByText = /\bRET\.?\b|\bABANDONO\b/.test(score);
+  const effectiveRetired = isRetired || retiredByText;
+  const cleaned = score.replace(/\bRET\.?\b|\bY\s+ABANDONO\b|\bABANDONO\b/g, '').trim();
   const rawSegments = cleaned
-    .split(/[;,]|\s+/)
+    .split(/[;,/]|\s+/)
     .map((segment) => segment.trim())
     .filter(Boolean);
   if (rawSegments.length === 0) return { ok: false, error: 'No se encontraron sets válidos en el marcador.' };
@@ -112,11 +123,11 @@ export function parseKoPlayedScoreDetail(scoreRaw: string, isRetired: boolean): 
 
   const sets: ParsedSetLite[] = [];
   for (const seg of rawSegments) {
-    const p = parseScoreSegment(seg);
+    const p = parseScoreSegment(seg, { allowPartialRegularSet: effectiveRetired && sets.length === rawSegments.length - 1 });
     if (!p) return { ok: false, error: `Segmento inválido: "${seg}".` };
     sets.push(p);
   }
-  const seqErr = validateSetSequence(sets, isRetired);
+  const seqErr = validateSetSequence(sets, effectiveRetired);
   if (seqErr) return { ok: false, error: seqErr };
 
   let setsWonA = 0;
@@ -130,7 +141,7 @@ export function parseKoPlayedScoreDetail(scoreRaw: string, isRetired: boolean): 
     else if (set.gamesB > set.gamesA) setsWonB += 1;
   }
 
-  if (!isRetired) {
+  if (!effectiveRetired) {
     if (setsWonA === setsWonB) return { ok: false, error: 'El resultado todavía no define un ganador.' };
     if (setsWonA < 2 && setsWonB < 2 && sets.length < 2) {
       return { ok: false, error: 'Faltan sets para cerrar el partido (se necesitan 2 sets ganados o un tercer super tie-break).' };
@@ -138,7 +149,7 @@ export function parseKoPlayedScoreDetail(scoreRaw: string, isRetired: boolean): 
   }
 
   const winner: 'A' | 'B' = setsWonA > setsWonB ? 'A' : 'B';
-  return { ok: true, winner, isRetired, setsWonA, setsWonB, gamesWonA, gamesWonB };
+  return { ok: true, winner, isRetired: effectiveRetired, setsWonA, setsWonB, gamesWonA, gamesWonB };
 }
 
 /** Parsea marcador jugado/retiro y devuelve el lado ganador A = player1, B = player2. */

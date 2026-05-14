@@ -48,7 +48,7 @@ Entry file: dist/index.js
 Build command:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run build
 ```
 
 Start command:
@@ -101,3 +101,11 @@ Recuperación:
 
 POST /api/admin/auth/forgot-password  
 POST /api/admin/auth/reset-password
+
+## Seed Liga 2
+
+```bash
+npm run data:seed:liga2
+```
+
+Este seed es idempotente y actualiza únicamente Liga 2 (`t-novak-l2`): grupos, jugadores, partidos y resultados disponibles. No modifica Liga 1 ni `t-novak`.
