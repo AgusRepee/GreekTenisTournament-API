@@ -1,0 +1,320 @@
+// Schema inicial — MySQL (Hostinger). Evolucionar con migraciones incrementales.
+// Documentación: docs/BACKEND_MIGRATION.md
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum TournamentStatus {
+  upcoming
+  finished
+}
+
+/// Greek 500 (circuito regular) vs Masters Greek 1000 (cierre de temporada).
+enum TournamentCatalogType {
+  greek500
+  masters1000
+}
+
+enum MatchStage {
+  group
+  interzonal
+  quarterfinal
+  semifinal
+  final
+  repechage
+  other
+}
+
+enum MatchResultStatus {
+  pending
+  played
+  walkover
+  retired
+  suspended
+}
+
+enum NewsStatus {
+  draft
+  published
+  archived
+}
+
+/// Agenda de partido (alineado a `matchScheduleStore` del frontend).
+enum ScheduleStatus {
+  unscheduled
+  scheduled
+  confirmed
+  rescheduled
+  postponed
+  cancelled
+  suspended
+}
+
+enum PlayerRosterStatus {
+  active
+  hidden
+}
+
+/// Jugadores del club (perfil + categoría).
+model Player {
+  id               String              @id @db.VarChar(64)
+  firstName        String?             @db.VarChar(128)
+  lastName         String?             @db.VarChar(128)
+  displayName      String?             @db.VarChar(255)
+  name             String              @db.VarChar(255)
+  category         String              @db.VarChar(64)
+  birthDate        DateTime?           @db.Date
+  nationality      String?             @db.VarChar(64)
+  playingHand      String?             @db.VarChar(16)
+  heightCm         Int?
+  profileBio       String?             @db.Text
+  profileImage     String?             @db.VarChar(512)
+  profileVisibility PlayerRosterStatus @default(active)
+  rosterActive     Boolean             @default(true)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  groupPlayers    GroupPlayer[]
+  matchesAsP1     Match[]             @relation("MatchPlayer1")
+  matchesAsP2     Match[]             @relation("MatchPlayer2")
+  wins            Match[]             @relation("MatchWinner")
+  lossesAs        Match[]             @relation("MatchLoser")
+  leagueRankRows  LeagueRankingRow[]
+}
+
+/// Torneo (instancia competición).
+model Tournament {
+  id          String            @id @db.VarChar(64)
+  slug        String?           @unique @db.VarChar(128)
+  name        String            @db.VarChar(255)
+  /// Tabla base de puntos de ranking (`recalculateRankings`); override opcional en `TournamentLeague.rulesJson.rankingPoints`.
+  tournamentType TournamentCatalogType @default(greek500)
+  status      TournamentStatus  @default(upcoming)
+  startDate   DateTime          @db.Date
+  endDate     DateTime          @db.Date
+  location    String            @db.VarChar(255)
+  coverImage  String?           @db.VarChar(255)
+  slotsTotal  Int?
+  slotsTaken  Int?
+  /// Plantilla JSON (equivalente a ligaDoc del frontend)
+  ligaDoc     Json?
+  /// Snapshot oficial de preclasificación (`Tournament.preclasificacion` en frontend).
+  preclasificacionJson Json?
+  winnerId    String?           @db.VarChar(64)
+  finalistId  String?           @db.VarChar(64)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  leagues      TournamentLeague[]
+  groups       Group[]
+  matches      Match[]
+  matchResults MatchResult[]
+  scheduleEntries TournamentScheduleEntry[]
+}
+
+/// Programación por partido (fixture / dedupeKey), equivalente a `matchScheduleStore` del frontend.
+model TournamentScheduleEntry {
+  dedupeKey        String         @id @db.VarChar(512)
+  tournamentId   String         @db.VarChar(64)
+  leagueNum        Int
+  scheduleStatus   ScheduleStatus @default(unscheduled)
+  date             String?        @db.VarChar(32)
+  time             String?        @db.VarChar(32)
+  venue            String?        @db.VarChar(256)
+  note             String?        @db.Text
+  confirmedAt      Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+}
+
+/// Ligas 1–6 asociadas a un torneo (un torneo puede anunciar varias ligas).
+model TournamentLeague {
+  id                  String     @id @default(cuid()) @db.VarChar(32)
+  tournamentId      String     @db.VarChar(64)
+  leagueNum         Int
+  groupStageStatus  String?    @db.VarChar(32)
+  eliminationStatus String?    @db.VarChar(32)
+  rulesJson         Json?
+  tournament        Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  matches           Match[]
+  elimination       EliminationBracket?
+
+  @@unique([tournamentId, leagueNum])
+  @@index([tournamentId])
+}
+
+/// Grupo de fase (A, B, …).
+model Group {
+  id           String     @id @default(cuid()) @db.VarChar(32)
+  tournamentId String     @db.VarChar(64)
+  key          String     @db.VarChar(32)
+  displayName  String     @db.VarChar(128)
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  players      GroupPlayer[]
+  matches      Match[]
+
+  @@unique([tournamentId, key])
+  @@index([tournamentId])
+}
+
+model GroupPlayer {
+  groupId  String @db.VarChar(32)
+  playerId String @db.VarChar(64)
+  seed     Int?
+
+  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, playerId])
+}
+
+/// Partido programado / cuadro (persistencia “partidos” del club).
+model Match {
+  id                 String          @id @db.VarChar(64)
+  tournamentId       String          @db.VarChar(64)
+  tournamentLeagueId String?         @db.VarChar(32)
+  groupId            String?         @db.VarChar(32)
+  stage              MatchStage      @default(other)
+  roundLabel         String?         @db.VarChar(128)
+  player1Id          String          @db.VarChar(64)
+  player2Id          String          @db.VarChar(64)
+  winnerId           String?         @db.VarChar(64)
+  loserId            String?         @db.VarChar(64)
+  score              String          @default("") @db.VarChar(255)
+  scheduleStatus     ScheduleStatus  @default(unscheduled)
+  scheduledDate      DateTime?       @db.Date
+  scheduledTime      String?         @db.VarChar(16)
+  scheduledCourt     String?         @db.VarChar(128)
+  completed          Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  tournament       Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournamentLeague TournamentLeague? @relation(fields: [tournamentLeagueId], references: [id], onDelete: SetNull)
+  group            Group?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  player1          Player            @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: Restrict)
+  player2          Player            @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: Restrict)
+  winner           Player?           @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  loser            Player?           @relation("MatchLoser", fields: [loserId], references: [id], onDelete: SetNull)
+  matchResults     MatchResult[]
+
+  @@index([tournamentId])
+  @@index([groupId])
+  @@index([tournamentLeagueId])
+}
+
+/// Resultado cargado por admin (alineado conceptualmente a MatchInput + dedupe).
+model MatchResult {
+  id            String             @id @default(cuid()) @db.VarChar(32)
+  dedupeKey     String             @unique @db.VarChar(512)
+  tournamentId String            @db.VarChar(64)
+  matchId       String?            @db.VarChar(64)
+  groupKey      String?            @db.VarChar(64)
+  roundNum      Int?
+  playerA       String             @db.VarChar(255)
+  playerB       String             @db.VarChar(255)
+  score         String?            @db.Text
+  setsJson      Json?
+  status        MatchResultStatus  @default(pending)
+  playedAt      DateTime?          @db.Date
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  match      Match?     @relation(fields: [matchId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId])
+  @@index([matchId])
+}
+
+/// Cuadro de eliminación confirmado (JSON compatible con el armado en admin).
+model EliminationBracket {
+  id                 String           @id @default(cuid()) @db.VarChar(32)
+  tournamentLeagueId String           @unique @db.VarChar(32)
+  status             String           @db.VarChar(32)
+  bracketJson        Json
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  tournamentLeague TournamentLeague @relation(fields: [tournamentLeagueId], references: [id], onDelete: Cascade)
+}
+
+/// Snapshot materializado de ranking por liga (opcional; el motor puede recalcular on-the-fly).
+model RankingSnapshot {
+  id         String   @id @default(cuid()) @db.VarChar(32)
+  leagueNum  Int
+  payload    Json
+  computedAt DateTime @default(now())
+
+  @@index([leagueNum, computedAt])
+}
+
+/// Filas de ranking por jugador y liga (materializado desde recálculo backend).
+model LeagueRankingRow {
+  id        String   @id @default(cuid()) @db.VarChar(32)
+  playerId  String   @db.VarChar(64)
+  league    Int
+  points    Int      @default(0)
+  played    Int      @default(0)
+  wins      Int      @default(0)
+  losses    Int      @default(0)
+  titles    Int      @default(0)
+  finals    Int      @default(0)
+  statsJson Json?
+  updatedAt DateTime @updatedAt
+
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, league])
+  @@index([league])
+}
+
+model News {
+  id          String     @id @default(cuid()) @db.VarChar(32)
+  slug        String?    @unique @db.VarChar(160)
+  title       String     @db.VarChar(255)
+  excerpt     String?    @db.Text
+  body        String?    @db.LongText
+  image       String?    @db.VarChar(512)
+  status      NewsStatus @default(draft)
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, publishedAt])
+}
+
+model AuditLog {
+  id           String   @id @default(cuid()) @db.VarChar(32)
+  actor        String?  @db.VarChar(128)
+  action       String   @db.VarChar(64)
+  entity       String   @db.VarChar(64)
+  entityId     String?  @db.VarChar(64)
+  tournamentId String?  @db.VarChar(64)
+  league       String?  @db.VarChar(32)
+  beforeJson   Json?
+  afterJson    Json?
+  createdBy    String?  @db.VarChar(128)
+  payload      Json?
+  createdAt    DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([tournamentId])
+  @@index([createdAt])
+}
+
+model Setting {
+  key       String   @id @db.VarChar(128)
+  value     Json
+  updatedAt DateTime @default(now()) @updatedAt
+}
