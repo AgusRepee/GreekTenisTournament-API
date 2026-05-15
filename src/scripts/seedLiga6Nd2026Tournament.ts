@@ -336,8 +336,8 @@ async function main() {
 
     const league = await tx.tournamentLeague.upsert({
       where: { tournamentId_leagueNum: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM } },
-      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed', eliminationStatus: 'draft' },
-      update: { groupStageStatus: 'confirmed', eliminationStatus: 'draft' },
+      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed', eliminationStatus: 'in_progress' },
+      update: { groupStageStatus: 'confirmed', eliminationStatus: 'in_progress' },
     });
 
     const groupIds = new Map<string, string>();
@@ -371,8 +371,8 @@ async function main() {
 
     await tx.eliminationBracket.upsert({
       where: { tournamentLeagueId: league.id },
-      create: { tournamentLeagueId: league.id, status: 'draft', bracketJson: bracketJson() },
-      update: { status: 'draft', bracketJson: bracketJson() },
+      create: { tournamentLeagueId: league.id, status: 'in_progress', bracketJson: bracketJson() },
+      update: { status: 'in_progress', bracketJson: bracketJson() },
     });
   });
 

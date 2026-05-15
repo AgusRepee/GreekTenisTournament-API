@@ -7,7 +7,7 @@ export const publicRouter = Router();
 
 publicRouter.get('/home', async (_req, res, next) => {
   try {
-    const [tournaments, playersTop] = await Promise.all([
+    const [tournamentsResult, playersResult] = await Promise.allSettled([
       prisma.tournament.findMany({
         where: { status: 'upcoming' },
         orderBy: { startDate: 'asc' },
@@ -16,9 +16,11 @@ publicRouter.get('/home', async (_req, res, next) => {
       }),
       prisma.player.findMany({ take: 8, orderBy: { name: 'asc' }, select: { id: true, name: true, category: true } }),
     ]);
+    if (tournamentsResult.status === 'rejected') console.error('[public/home] tournaments query failed', tournamentsResult.reason);
+    if (playersResult.status === 'rejected') console.error('[public/home] players query failed', playersResult.reason);
     res.json({
-      tournaments,
-      playersPreview: playersTop,
+      tournaments: tournamentsResult.status === 'fulfilled' ? tournamentsResult.value : [],
+      playersPreview: playersResult.status === 'fulfilled' ? playersResult.value : [],
       message: 'Agregá agregación real (partidos, noticias) en fase 6–7',
     });
   } catch (e) {
