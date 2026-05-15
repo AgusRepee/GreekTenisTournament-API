@@ -1,4 +1,4 @@
-﻿CREATE TABLE `AdminUser` (
+CREATE TABLE `AdminUser` (
   `id` VARCHAR(32) NOT NULL,
   `username` VARCHAR(128) NOT NULL,
   `passwordHash` VARCHAR(255) NOT NULL,
