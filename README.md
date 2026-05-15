@@ -48,7 +48,7 @@ Entry file: dist/index.js
 Build command:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd && npm run build
 ```
 
 Start command:
@@ -117,3 +117,11 @@ npm run data:seed:liga5nd
 ```
 
 Este seed es idempotente y actualiza únicamente `Novak Djokovic - Liga 5` (`t-novak-l5`). Si existiera el ID provisorio `t-liga5-nd-2026`, lo elimina para no duplicar torneos.
+
+## Seed Novak Djokovic - Liga 6
+
+```bash
+npm run data:seed:liga6nd
+```
+
+Este seed es idempotente y actualiza únicamente `Novak Djokovic - Liga 6` (`t-novak-l6`): grupos A/B, jugadores normalizados, resultados de fase de grupos y cuadro de Play Off con BYE para Cellilli F. y Ballesta F.

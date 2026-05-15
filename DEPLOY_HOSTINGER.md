@@ -23,7 +23,7 @@ Entry file: dist/index.js
 Build:
 
 ```bash
-npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run build
+npm install && npx prisma generate && npx prisma migrate deploy && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd && npm run build
 ```
 
 Start:
@@ -126,3 +126,7 @@ No toca Liga 1 ni `t-novak`.
 
 El comando `npm run data:seed:liga5nd` crea o actualiza únicamente `Novak Djokovic - Liga 5` (`t-novak-l5`), sus grupos, jugadores, partidos, agenda y resultados disponibles.
 Si existiera el ID provisorio `t-liga5-nd-2026`, lo elimina para no duplicar torneos.
+
+## Seed Novak Djokovic - Liga 6
+
+El comando `npm run data:seed:liga6nd` crea o actualiza únicamente `Novak Djokovic - Liga 6` (`t-novak-l6`), sus grupos A/B, jugadores, resultados de fase de grupos y Play Off con BYE para Cellilli F. y Ballesta F.
