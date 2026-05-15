@@ -110,10 +110,10 @@ npm run data:seed:liga2
 
 Este seed es idempotente y actualiza únicamente Liga 2 (`t-novak-l2`): grupos, jugadores, partidos y resultados disponibles. No modifica Liga 1 ni `t-novak`.
 
-## Seed Liga 5 ND 2026
+## Seed Novak Djokovic - Liga 5
 
 ```bash
 npm run data:seed:liga5nd
 ```
 
-Este seed es idempotente y actualiza únicamente `Liga 5 ND 2026` (`t-liga5-nd-2026`): grupos, jugadores, partidos, agenda y resultados disponibles. No modifica Liga 1, Liga 2 ni torneos Novak.
+Este seed es idempotente y actualiza únicamente `Novak Djokovic - Liga 5` (`t-novak-l5`). Si existiera el ID provisorio `t-liga5-nd-2026`, lo elimina para no duplicar torneos.

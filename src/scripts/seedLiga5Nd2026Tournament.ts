@@ -3,7 +3,7 @@ import type { MatchResultStatus, MatchStage, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { recalculateRankings } from '../services/recalculateRankings.js';
 
-const TOURNAMENT_ID = 't-liga5-nd-2026';
+const TOURNAMENT_ID = 't-novak-l5';
 const LEAGUE_NUM = 5;
 const CLASSIFICATION_RULE =
   'Los tres primeros de cada grupo clasifican a Play Off. Los dos peores terceros juegan Repechaje. El ganador entra a Cuartos como octavo clasificado. Cruces: 1° vs 8°, 2° vs 7°, 3° vs 6°, 4° vs 5°.';
@@ -101,7 +101,7 @@ function scoreForPlayerA(row: SeedMatch): string {
 
 function ligaDoc(): Prisma.InputJsonValue {
   return {
-    torneo: 'Liga 5 ND 2026',
+    torneo: 'Novak Djokovic',
     liga: LEAGUE_NUM,
     grupos: groups,
     fechas: [],
@@ -124,8 +124,8 @@ async function main() {
       where: { id: TOURNAMENT_ID },
       create: {
         id: TOURNAMENT_ID,
-        slug: 'liga-5-nd-2026',
-        name: 'Liga 5 ND 2026',
+        slug: 'novak-djokovic-liga-5',
+        name: 'Novak Djokovic - Liga 5',
         tournamentType: 'greek500',
         status: 'upcoming',
         startDate: new Date('2026-03-11T00:00:00.000Z'),
@@ -137,8 +137,8 @@ async function main() {
         ligaDoc: ligaDoc(),
       },
       update: {
-        slug: 'liga-5-nd-2026',
-        name: 'Liga 5 ND 2026',
+        slug: 'novak-djokovic-liga-5',
+        name: 'Novak Djokovic - Liga 5',
         tournamentType: 'greek500',
         status: 'upcoming',
         location: 'Club de Tenis',
@@ -266,7 +266,8 @@ async function main() {
   });
 
   const ranking = await recalculateRankings(prisma);
-  console.log(`Liga 5 ND 2026 seed listo: ${fixtures.length} partidos, ${ranking.rowsWritten} filas de ranking recalculadas.`);
+  await prisma.tournament.deleteMany({ where: { id: 't-liga5-nd-2026' } });
+  console.log(`Novak Djokovic - Liga 5 seed listo: ${fixtures.length} partidos, ${ranking.rowsWritten} filas de ranking recalculadas.`);
 }
 
 main()

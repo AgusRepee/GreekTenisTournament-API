@@ -122,7 +122,7 @@ Ver persistencia
 El comando `npm run data:seed:liga2` crea o actualiza únicamente Liga 2 (`t-novak-l2`), sus grupos, jugadores, partidos y resultados.
 No toca Liga 1 ni `t-novak`.
 
-## Seed Liga 5 ND 2026
+## Seed Novak Djokovic - Liga 5
 
-El comando `npm run data:seed:liga5nd` crea o actualiza únicamente `Liga 5 ND 2026` (`t-liga5-nd-2026`), sus grupos, jugadores, partidos, agenda y resultados disponibles.
-No toca Liga 1, Liga 2 ni torneos Novak.
+El comando `npm run data:seed:liga5nd` crea o actualiza únicamente `Novak Djokovic - Liga 5` (`t-novak-l5`), sus grupos, jugadores, partidos, agenda y resultados disponibles.
+Si existiera el ID provisorio `t-liga5-nd-2026`, lo elimina para no duplicar torneos.
