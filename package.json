@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "build:deploy": "prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
-    "build:fix": "prisma migrate resolve --rolled-back 20260514203000_admin_users && prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
+    "build:fix": "prisma migrate resolve --rolled-back 20260514203000_admin_users && prisma migrate resolve --rolled-back 20260514204500_admin_email_password_reset && prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",

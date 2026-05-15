@@ -1,4 +1,4 @@
-﻿ALTER TABLE `AdminUser` ADD COLUMN `email` VARCHAR(255) NULL;
+ALTER TABLE `AdminUser` ADD COLUMN `email` VARCHAR(255) NULL;
 CREATE UNIQUE INDEX `AdminUser_email_key` ON `AdminUser`(`email`);
 
 CREATE TABLE `AdminPasswordResetToken` (
