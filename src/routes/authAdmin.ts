@@ -166,7 +166,17 @@ authAdminRouter.post('/forgot-password', async (req, res, next) => {
         },
       });
       const appUrl = process.env.APP_URL?.trim().replace(/\/+$/, '') || 'https://greektennis.com';
-      await sendPasswordResetEmail(email, `${appUrl}/reset-password?token=${encodeURIComponent(token)}`);
+      try {
+        await sendPasswordResetEmail(email, `${appUrl}/reset-password?token=${encodeURIComponent(token)}`);
+      } catch (sendErr) {
+        await prisma.adminPasswordResetToken.deleteMany({ where: { tokenHash } });
+        console.error('[admin/forgot-password] SMTP send failed', sendErr);
+        res.status(502).json({
+          error: 'No se pudo enviar el email de recuperación. Revisá SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS y SMTP_FROM.',
+          code: 'SMTP_SEND_FAILED',
+        });
+        return;
+      }
     }
 
     res.json({ ok: true, message: 'Si el email existe, enviamos un enlace para recuperar la contraseña.' });
