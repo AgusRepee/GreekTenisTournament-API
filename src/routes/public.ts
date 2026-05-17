@@ -117,7 +117,7 @@ publicRouter.get('/schedule', async (req, res, next) => {
 publicRouter.get('/tournaments/:slug/schedule', async (req, res, next) => {
   try {
     const t = await prisma.tournament.findFirst({
-      where: { slug: req.params.slug },
+      where: { OR: [{ slug: req.params.slug }, { id: req.params.slug }] },
       select: { id: true, name: true, slug: true, status: true, startDate: true, endDate: true },
     });
     if (!t) {
@@ -182,7 +182,7 @@ publicRouter.get('/elimination', async (req, res, next) => {
 publicRouter.get('/tournaments/:slug/elimination', async (req, res, next) => {
   try {
     const t = await prisma.tournament.findFirst({
-      where: { slug: req.params.slug },
+      where: { OR: [{ slug: req.params.slug }, { id: req.params.slug }] },
       select: { id: true, name: true, slug: true },
     });
     if (!t) {
@@ -204,7 +204,7 @@ publicRouter.get('/tournaments/:slug/elimination', async (req, res, next) => {
 publicRouter.get('/tournaments/:slug', async (req, res, next) => {
   try {
     const row = await prisma.tournament.findFirst({
-      where: { slug: req.params.slug },
+      where: { OR: [{ slug: req.params.slug }, { id: req.params.slug }] },
       include: { groups: true, leagues: true },
     });
     if (!row) {
