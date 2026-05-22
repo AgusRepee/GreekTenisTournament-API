@@ -12,12 +12,18 @@ export type MatchWithLeagueGroup = Match & {
   group: Group | null;
 };
 
+function stripDiacritics(s: string): string {
+  return s.normalize('NFD').replace(/\p{M}+/gu, '');
+}
+
 export function normName(s: string): string {
-  return s
-    .replace(/\s*\(P\)\s*$/i, '')
-    .replace(/^\s*\(P\)\s*/i, '')
-    .trim()
-    .toLowerCase();
+  return stripDiacritics(
+    s
+      .replace(/\s*\(P\)\s*$/i, '')
+      .replace(/^\s*\(P\)\s*/i, '')
+      .trim()
+      .toLowerCase(),
+  );
 }
 
 export function buildNameToId(players: Player[]): Map<string, string> {

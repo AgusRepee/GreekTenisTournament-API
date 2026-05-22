@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { buildPublicPlayerProfile } from '../services/buildPublicPlayerProfile.js';
+import { mergeActiveRosterRankingRows } from '../services/activeRosterRankingRows.js';
 import { comparePublicRankingRows, type RankingRowWithPlayer } from '../services/rankingPublicSort.js';
 
 export const publicRouter = Router();
@@ -232,7 +233,7 @@ publicRouter.get('/rankings', async (req, res, next) => {
       take: 2000,
     });
 
-    const typed = rows as RankingRowWithPlayer[];
+    const typed = await mergeActiveRosterRankingRows(prisma, rows as RankingRowWithPlayer[], leagueNum);
     const snapshots = await prisma.rankingSnapshot.findMany({
       orderBy: { computedAt: 'desc' },
       take: 5,
