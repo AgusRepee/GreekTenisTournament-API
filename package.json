@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prepare": "npx prisma generate && npm run build",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "build:deploy": "prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
