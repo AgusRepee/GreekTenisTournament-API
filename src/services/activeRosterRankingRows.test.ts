@@ -12,9 +12,6 @@ describe('mergeActiveRosterRankingRows', () => {
           },
         ],
       },
-      match: {
-        findMany: async () => [],
-      },
     };
 
     const rows = await mergeActiveRosterRankingRows(prisma as never, [], null);
@@ -29,5 +26,37 @@ describe('mergeActiveRosterRankingRows', () => {
       losses: 0,
       player: { name: 'Demo A.' },
     });
+  });
+
+  it('no reemplaza una fila de ranking materializada existente', async () => {
+    const existing = {
+      id: 'row-real',
+      playerId: 'p-l2-komesu-m',
+      league: 2,
+      points: 180,
+      played: 5,
+      wins: 3,
+      losses: 2,
+      titles: 0,
+      finals: 0,
+      statsJson: {},
+      updatedAt: new Date(),
+      player: { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
+    };
+    const prisma = {
+      groupPlayer: {
+        findMany: async () => [
+          {
+            player: { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
+            group: { tournament: { leagues: [{ leagueNum: 2 }] } },
+          },
+        ],
+      },
+    };
+
+    const rows = await mergeActiveRosterRankingRows(prisma as never, [existing], null);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: 'row-real', playerId: 'p-l2-komesu-m', league: 2, points: 180 });
   });
 });

@@ -40,7 +40,9 @@ function addRosterPlayer(
   if (league < 1 || league > 6) return;
   if (leagueFilter != null && league !== leagueFilter) return;
   const key = `${player.id}|${league}`;
-  if (!rowsByKey.has(key)) rowsByKey.set(key, emptyRankingRow(player, league));
+  // Nunca reemplazar una fila materializada: si ya hay ranking real, conserva puntos/estadísticas.
+  if (rowsByKey.has(key)) return;
+  rowsByKey.set(key, emptyRankingRow(player, league));
 }
 
 /**
@@ -55,34 +57,24 @@ export async function mergeActiveRosterRankingRows(
   const rowsByKey = new Map<string, RankingRowWithPlayer>();
   for (const row of rows) rowsByKey.set(`${row.playerId}|${row.league}`, row);
 
-  const [groupPlayers, matches] = await Promise.all([
-    prisma.groupPlayer.findMany({
-      where: {
-        player: { rosterActive: true, profileVisibility: 'active' },
-        group: { tournament: { status: 'upcoming' } },
-      },
-      include: {
-        player: { select: { id: true, name: true, category: true, profileImage: true } },
-        group: {
-          select: {
-            tournament: {
-              select: {
-                leagues: { select: { leagueNum: true } },
-              },
+  const groupPlayers = await prisma.groupPlayer.findMany({
+    where: {
+      player: { rosterActive: true, profileVisibility: 'active' },
+      group: { tournament: { status: 'upcoming' } },
+    },
+    include: {
+      player: { select: { id: true, name: true, category: true, profileImage: true } },
+      group: {
+        select: {
+          tournament: {
+            select: {
+              leagues: { select: { leagueNum: true } },
             },
           },
         },
       },
-    }),
-    prisma.match.findMany({
-      where: { tournament: { status: 'upcoming' } },
-      include: {
-        tournamentLeague: { select: { leagueNum: true } },
-        player1: { select: { id: true, name: true, category: true, profileImage: true } },
-        player2: { select: { id: true, name: true, category: true, profileImage: true } },
-      },
-    }),
-  ]);
+    },
+  });
 
   for (const gp of groupPlayers) {
     const playerLeague = categoryToLeague(gp.player.category);
@@ -93,12 +85,6 @@ export async function mergeActiveRosterRankingRows(
         ? tournamentLeagues[0]!
         : playerLeague;
     addRosterPlayer(rowsByKey, gp.player, league, leagueFilter);
-  }
-
-  for (const match of matches) {
-    const league = match.tournamentLeague?.leagueNum ?? categoryToLeague(match.player1.category);
-    addRosterPlayer(rowsByKey, match.player1, league, leagueFilter);
-    addRosterPlayer(rowsByKey, match.player2, league, leagueFilter);
   }
 
   return Array.from(rowsByKey.values());

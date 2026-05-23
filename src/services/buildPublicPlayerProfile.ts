@@ -10,7 +10,6 @@ import {
   type TournamentPhase,
 } from './rankingPointsConfig.js';
 import { parseKoPlayedScoreDetail } from './koScoreParse.js';
-import { mergeActiveRosterRankingRows } from './activeRosterRankingRows.js';
 import { comparePublicRankingRows, type RankingRowWithPlayer } from './rankingPublicSort.js';
 
 function phaseLabelEs(phase: TournamentPhase): string {
@@ -216,7 +215,7 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
 
   if (!player) return null;
 
-  const allRankingRows = await mergeActiveRosterRankingRows(prisma, allRankingRowsRaw as RankingRowWithPlayer[]);
+  const allRankingRows = allRankingRowsRaw as RankingRowWithPlayer[];
   const rosterIds = new Set(ctx.players.map((p) => p.id));
   const allPlayers = ctx.players.map((p) => ({ id: p.id, name: p.name, category: p.category }));
   if (!rosterIds.has(player.id)) {
