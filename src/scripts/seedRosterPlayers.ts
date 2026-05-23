@@ -2,8 +2,17 @@ import '../envBootstrap.js';
 import { prisma } from '../lib/prisma.js';
 import { recalculateRankings } from '../services/recalculateRankings.js';
 
-const ROSTER_BY_LEAGUE = {
-  1: [
+type RosterLeague = {
+  leagueNum: number;
+  category: string;
+  players: string[];
+};
+
+const ROSTER_LEAGUES: RosterLeague[] = [
+  {
+    leagueNum: 1,
+    category: 'Primera',
+    players: [
     'Pfening G.',
     'Álvarez I.',
     'Tacain R.',
@@ -19,8 +28,33 @@ const ROSTER_BY_LEAGUE = {
     'Filosa M.',
     'Mena C.',
     'Novizki P.',
-  ],
-  3: [
+    ],
+  },
+  {
+    leagueNum: 2,
+    category: 'Segunda',
+    players: [
+      'Lacave L.',
+      'Monzón M.',
+      'Colomer S.',
+      'Cancio M.',
+      'Del Pino A.',
+      'Ferreyra O.',
+      'Ruiz J.',
+      'Komesu M.',
+      'Guareschi A.',
+      'Mayer D.',
+      'Rossi F.',
+      'Fredkin B.',
+      'Molina L.',
+      'Scilipoti N.',
+      'Gadea M.',
+    ],
+  },
+  {
+    leagueNum: 3,
+    category: 'Tercera',
+    players: [
     'Pusterla P.',
     'Santi M.',
     'Rusel S.',
@@ -36,8 +70,12 @@ const ROSTER_BY_LEAGUE = {
     'Del Valle G.',
     'Ferreres G.',
     'Komesu F.',
-  ],
-  4: [
+    ],
+  },
+  {
+    leagueNum: 4,
+    category: 'Cuarta',
+    players: [
     'Chantada M.',
     'Beitia J.',
     'Malcangi R.',
@@ -51,14 +89,55 @@ const ROSTER_BY_LEAGUE = {
     'Cellilli M.',
     'Garcia J.',
     'Fernandez B.',
-  ],
-} as const;
+    ],
+  },
+  {
+    leagueNum: 5,
+    category: 'Quinta A',
+    players: [
+      'Ríos J.',
+      'Ali M.',
+      'Peralta G.',
+      'Oviedo M.',
+      'Manrique E.',
+      'Cirigliano D.',
+      'Córdoba A.',
+      'González Días F.',
+      'Chantada S.',
+      'Sola M.',
+      'Tellechea L.',
+      'González Días C.',
+      'Córdoba G.',
+      'Giménez F.',
+      'Vila E.',
+    ],
+  },
+  {
+    leagueNum: 6,
+    category: 'Quinta B',
+    players: [
+      'Cellilli F.',
+      'Bataglia F.',
+      'De Ruyck G.',
+      'Fedrjanic N.',
+      'Amezague J.',
+      'Ballesta F.',
+      'Ferrarotti E.',
+      'Oshiro E.',
+      'Antuña A.',
+      'Fratini M.',
+    ],
+  },
+];
 
-const CATEGORY_BY_LEAGUE: Record<keyof typeof ROSTER_BY_LEAGUE, string> = {
-  1: 'Primera',
-  3: 'Tercera',
-  4: 'Cuarta',
-};
+function normalizeName(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
 
 function playerSlug(name: string): string {
   return name
@@ -74,17 +153,29 @@ function playerId(league: number, name: string): string {
 }
 
 async function main() {
+  const existingPlayers = await prisma.player.findMany({
+    select: { id: true, name: true, category: true },
+  });
+  const existingByCategoryAndName = new Map(
+    existingPlayers.map((player) => [`${player.category}::${normalizeName(player.name)}`, player.id] as const),
+  );
+
   let upserted = 0;
-  for (const leagueKey of Object.keys(ROSTER_BY_LEAGUE) as unknown as Array<keyof typeof ROSTER_BY_LEAGUE>) {
-    const category = CATEGORY_BY_LEAGUE[leagueKey];
-    for (const name of ROSTER_BY_LEAGUE[leagueKey]) {
+  for (const league of ROSTER_LEAGUES) {
+    const seenNames = new Set<string>();
+    for (const name of league.players) {
+      const normalized = normalizeName(name);
+      if (seenNames.has(normalized)) continue;
+      seenNames.add(normalized);
+      const existingId = existingByCategoryAndName.get(`${league.category}::${normalized}`);
+      const id = existingId ?? playerId(league.leagueNum, name);
       await prisma.player.upsert({
-        where: { id: playerId(Number(leagueKey), name) },
+        where: { id },
         create: {
-          id: playerId(Number(leagueKey), name),
+          id,
           name,
           displayName: name,
-          category,
+          category: league.category,
           nationality: 'Argentina',
           rosterActive: true,
           profileVisibility: 'active',
@@ -92,7 +183,7 @@ async function main() {
         update: {
           name,
           displayName: name,
-          category,
+          category: league.category,
           rosterActive: true,
           profileVisibility: 'active',
         },
