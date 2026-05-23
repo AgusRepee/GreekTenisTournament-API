@@ -63,13 +63,14 @@ const ROSTER_LEAGUES: RosterLeague[] = [
     'Marin G.',
     'Fernandez B.',
     'Casadio M.',
-    'Volpe S.',
+    'Aguirre W.',
     'Bianco D.',
     'Vito C.',
     'Santi G.',
     'Del Valle G.',
     'Ferreres G.',
-    'Komesu F.',
+    'Figueroa M.',
+            'Komesu F.',
     ],
   },
   {
@@ -159,6 +160,17 @@ async function main() {
   const existingByCategoryAndName = new Map(
     existingPlayers.map((player) => [`${player.category}::${normalizeName(player.name)}`, player.id] as const),
   );
+
+    // Desactivar Volpe S. (Tercera) – sale definitivamente del torneo y plantel activo
+    const volpeKey = `Tercera::${normalizeName('Volpe S.')}`;
+    const volpeId = existingByCategoryAndName.get(volpeKey);
+    if (volpeId) {
+          await prisma.player.update({
+                  where: { id: volpeId },
+                  data: { rosterActive: false, profileVisibility: 'hidden' },
+          });
+          console.log(`[seedRosterPlayers] Volpe S. desactivado (id: ${volpeId})`);
+    }
 
   let upserted = 0;
   for (const league of ROSTER_LEAGUES) {
