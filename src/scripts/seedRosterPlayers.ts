@@ -70,7 +70,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
     'Del Valle G.',
     'Ferreres G.',
     'Figueroa M.',
-            'Komesu F.',
+    'Komesu F.',
     ],
   },
   {
@@ -131,6 +131,10 @@ const ROSTER_LEAGUES: RosterLeague[] = [
   },
 ];
 
+const REMOVED_ROSTER_PLAYERS = [
+  { category: 'Tercera', name: 'Volpe S.' },
+] as const;
+
 function normalizeName(name: string): string {
   return name
     .normalize('NFD')
@@ -161,18 +165,25 @@ async function main() {
     existingPlayers.map((player) => [`${player.category}::${normalizeName(player.name)}`, player.id] as const),
   );
 
-    // Desactivar Volpe S. (Tercera) – sale definitivamente del torneo y plantel activo
-    const volpeKey = `Tercera::${normalizeName('Volpe S.')}`;
-    const volpeId = existingByCategoryAndName.get(volpeKey);
-    if (volpeId) {
-          await prisma.player.update({
-                  where: { id: volpeId },
-                  data: { rosterActive: false, profileVisibility: 'hidden' },
-          });
-          console.log(`[seedRosterPlayers] Volpe S. desactivado (id: ${volpeId})`);
-    }
-
   let upserted = 0;
+  let deactivated = 0;
+  const removedKeys = new Set(
+    REMOVED_ROSTER_PLAYERS.map((player) => `${player.category}::${normalizeName(player.name)}`),
+  );
+  const removedIds = existingPlayers
+    .filter((player) => removedKeys.has(`${player.category}::${normalizeName(player.name)}`))
+    .map((player) => player.id);
+  if (removedIds.length > 0) {
+    const result = await prisma.player.updateMany({
+      where: { id: { in: removedIds } },
+      data: {
+        rosterActive: false,
+        profileVisibility: 'hidden',
+      },
+    });
+    deactivated = result.count;
+  }
+
   for (const league of ROSTER_LEAGUES) {
     const seenNames = new Set<string>();
     for (const name of league.players) {
@@ -205,7 +216,9 @@ async function main() {
   }
 
   const rk = await recalculateRankings(prisma);
-  console.log(`[seedRosterPlayers] jugadores activos actualizados: ${upserted}. Ranking rows: ${rk.rowsWritten}`);
+  console.log(
+    `[seedRosterPlayers] jugadores activos actualizados: ${upserted}. Inactivos: ${deactivated}. Ranking rows: ${rk.rowsWritten}`,
+  );
 }
 
 main()
