@@ -9,7 +9,7 @@ const CLASSIFICATION_RULE =
   'Los tres primeros de cada grupo clasifican a Play Off. Los dos peores terceros juegan Repechaje. El ganador entra a Cuartos como octavo clasificado. Cruces: 1° vs 8°, 2° vs 7°, 3° vs 6°, 4° vs 5°.';
 
 const groups = {
-  A: ['Ríos J.', 'Peralta G.', 'Ali M.', 'Oviedo M.', 'Manrique E.'],
+  A: ['Ríos J.', 'Peralta G.', 'Oviedo M.', 'Ali M.', 'Manrique E.'],
   B: ['González Días F.', 'Chantada S.', 'Sola M.', 'Cirigliano D.', 'Córdoba A.'],
   C: ['Córdoba G.', 'González Días C.', 'Tellechea L.', 'Vila E.', 'Giménez F.'],
 } as const;
