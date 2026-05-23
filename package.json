@@ -7,8 +7,8 @@
     "prepare": "npx prisma generate && npm run build",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:deploy": "prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
-    "build:fix": "prisma migrate resolve --rolled-back 20260514203000_admin_users && prisma migrate resolve --rolled-back 20260514204500_admin_email_password_reset && prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd",
+    "build:deploy": "prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd && npm run data:seed:roster",
+    "build:fix": "prisma migrate resolve --rolled-back 20260514203000_admin_users && prisma migrate resolve --rolled-back 20260514204500_admin_email_password_reset && prisma generate && prisma migrate deploy && npm run build && npm run admin:seed && npm run data:seed:liga2 && npm run data:seed:liga5nd && npm run data:seed:liga6nd && npm run data:seed:roster",
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -21,7 +21,8 @@
     "admin:seed": "tsx src/scripts/seedAdminUser.ts",
     "data:seed:liga2": "tsx src/scripts/seedLiga2Tournament.ts",
     "data:seed:liga5nd": "tsx src/scripts/seedLiga5Nd2026Tournament.ts",
-    "data:seed:liga6nd": "tsx src/scripts/seedLiga6Nd2026Tournament.ts"
+    "data:seed:liga6nd": "tsx src/scripts/seedLiga6Nd2026Tournament.ts",
+    "data:seed:roster": "tsx src/scripts/seedRosterPlayers.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

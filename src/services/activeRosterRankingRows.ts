@@ -46,7 +46,7 @@ function addRosterPlayer(
 }
 
 /**
- * Ranking público = ranking materializado + jugadores inscriptos en torneos activos.
+ * Ranking público = ranking materializado + padrón activo de jugadores.
  * Si todavía no jugaron, aparecen con 0 puntos en vez de desaparecer.
  */
 export async function mergeActiveRosterRankingRows(
@@ -57,34 +57,21 @@ export async function mergeActiveRosterRankingRows(
   const rowsByKey = new Map<string, RankingRowWithPlayer>();
   for (const row of rows) rowsByKey.set(`${row.playerId}|${row.league}`, row);
 
-  const groupPlayers = await prisma.groupPlayer.findMany({
+  const players = await prisma.player.findMany({
     where: {
-      player: { rosterActive: true, profileVisibility: 'active' },
-      group: { tournament: { status: 'upcoming' } },
+      rosterActive: true,
+      profileVisibility: 'active',
     },
-    include: {
-      player: { select: { id: true, name: true, category: true, profileImage: true } },
-      group: {
-        select: {
-          tournament: {
-            select: {
-              leagues: { select: { leagueNum: true } },
-            },
-          },
-        },
-      },
+    select: {
+      id: true,
+      name: true,
+      category: true,
+      profileImage: true,
     },
   });
 
-  for (const gp of groupPlayers) {
-    const playerLeague = categoryToLeague(gp.player.category);
-    const tournamentLeagues = gp.group.tournament.leagues.map((l) => l.leagueNum);
-    const league = tournamentLeagues.includes(playerLeague)
-      ? playerLeague
-      : tournamentLeagues.length === 1
-        ? tournamentLeagues[0]!
-        : playerLeague;
-    addRosterPlayer(rowsByKey, gp.player, league, leagueFilter);
+  for (const player of players) {
+    addRosterPlayer(rowsByKey, player, categoryToLeague(player.category), leagueFilter);
   }
 
   return Array.from(rowsByKey.values());

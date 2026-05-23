@@ -2,14 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { mergeActiveRosterRankingRows } from './activeRosterRankingRows.js';
 
 describe('mergeActiveRosterRankingRows', () => {
-  it('agrega jugadores inscriptos sin ranking con 0 puntos', async () => {
+  it('agrega jugadores activos sin ranking con 0 puntos', async () => {
     const prisma = {
-      groupPlayer: {
+      player: {
         findMany: async () => [
-          {
-            player: { id: 'p-l1-demo', name: 'Demo A.', category: 'Primera', profileImage: null },
-            group: { tournament: { leagues: [{ leagueNum: 1 }] } },
-          },
+          { id: 'p-l1-demo', name: 'Demo A.', category: 'Primera', profileImage: null },
         ],
       },
     };
@@ -44,12 +41,9 @@ describe('mergeActiveRosterRankingRows', () => {
       player: { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
     };
     const prisma = {
-      groupPlayer: {
+      player: {
         findMany: async () => [
-          {
-            player: { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
-            group: { tournament: { leagues: [{ leagueNum: 2 }] } },
-          },
+          { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
         ],
       },
     };
