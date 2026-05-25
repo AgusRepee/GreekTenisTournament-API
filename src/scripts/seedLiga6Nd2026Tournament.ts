@@ -51,7 +51,7 @@ const fixtures: SeedMatch[] = [
   { group: 'B', round: 3, date: '2026-04-12', time: '16:00', playerA: 'Fratini M.', playerB: 'Ferrarotti E.', ballPlayer: 'Fratini M.', winner: 'Ferrarotti E.', winnerScore: '6-2 / 6-1' },
   { group: 'B', round: 4, date: '2026-04-26', time: '19:00', playerA: 'Ferrarotti E.', playerB: 'Antuña A.', ballPlayer: 'Ferrarotti E.', winner: 'Antuña A.', winnerScore: '6-1 / 6-0' },
   { group: 'B', round: 4, playerA: 'Ballesta F.', playerB: 'Fratini M.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
-  
+];  
 
 const knockoutFixtures: SeedMatch[] = [
   { group: 'Cuartos de Final', round: 0, playerA: 'Cellilli F.', playerB: 'BYE', winner: 'Cellilli F.', winnerScore: 'BYE', note: 'Cellilli F. pasa directo a Semifinal por BYE.' },
