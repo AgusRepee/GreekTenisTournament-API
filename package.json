@@ -26,12 +26,15 @@
     "data:seed:roster": "tsx src/scripts/seedRosterPlayers.ts"
   },
   "dependencies": {
+    "@prisma/adapter-mariadb": "^6.19.0",
     "@prisma/client": "^6.19.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
+    "mariadb": "3.4.5",
+    "mysql2": "^3.11.0",
     "nodemailer": "^8.0.7"
   },
   "devDependencies": {

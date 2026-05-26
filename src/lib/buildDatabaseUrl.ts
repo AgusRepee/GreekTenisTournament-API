@@ -19,3 +19,28 @@ export function resolveDatabaseUrl(): string {
   const encPass = encodeURIComponent(password);
   return `mysql://${encUser}:${encPass}@${host}:${port}/${name}`;
 }
+
+export type MysqlConnectionConfig = {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+};
+
+/** Parsea DATABASE_URL (MySQL) para driver adapters sin motor nativo Prisma. */
+export function parseMysqlConnectionConfig(rawUrl?: string): MysqlConnectionConfig {
+  const url = (rawUrl ?? resolveDatabaseUrl()).trim().replace(/^['"]|['"]$/g, '');
+  const parsed = new URL(url);
+  const database = parsed.pathname.replace(/^\//, '');
+  if (!parsed.hostname || !database) {
+    throw new Error('DATABASE_URL inválida para MySQL (host/database requeridos).');
+  }
+  return {
+    host: parsed.hostname,
+    port: parsed.port ? Number(parsed.port) : 3306,
+    user: decodeURIComponent(parsed.username),
+    password: decodeURIComponent(parsed.password),
+    database,
+  };
+}
