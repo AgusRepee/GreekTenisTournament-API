@@ -10,6 +10,10 @@ const BYE_PLAYER_ID = 'sys-ko-bye';
 const CLASSIFICATION_RULE =
   'Clasifican a Cuartos de Final los 4 primeros de cada grupo. Cellilli F. y Ballesta F. pasan directo a Semifinal por BYE.';
 
+// --- Oshiro E. fue eliminado del torneo Liga 6. Solo aparece en el bloque de limpieza ---
+const OSHIRO_PLAYER_ID = 'p-l6nd-oshiro-e';
+const OSHIRO_NAME = 'Oshiro E.';
+
 const groups = {
   A: ['Cellilli F.', 'Amezague J.', 'De Ruyck G.', 'Fedrjanic N.', 'Bataglia F.'],
   B: ['Ballesta F.', 'Antuña A.', 'Ferrarotti E.', 'Fratini M.'],
@@ -278,9 +282,55 @@ async function upsertSeedMatch(
 
   return { created: !existingId, matchId: matchIdToUse };
 }
+/**
+ * Limpieza idempotente de datos de Oshiro E. en t-novak-l6.
+  * No borra otros torneos ni jugadores.
+   */
+async function cleanupOshiroFromLiga6(): Promise<void> {
+    const oshiroById = await prisma.player.findUnique({ where: { id: OSHIRO_PLAYER_ID } });
+    const oshiroByName = !oshiroById ? await prisma.player.findFirst({ where: { name: OSHIRO_NAME } }) : null;
+    const oshiroId = oshiroById?.id ?? oshiroByName?.id;
+    if (!oshiroId) {
+          console.log('[cleanup] Oshiro E. no encontrado en DB — nada que limpiar.');
+          return;
+    }
+    const mrDeleted = await prisma.matchResult.deleteMany({
+          where: { tournamentId: TOURNAMENT_ID, OR: [{ playerA: { contains: 'Oshiro' } }, { playerB: { contains: 'Oshiro' } }] },
+    });
+    console.log(`[cleanup] MatchResult de Oshiro eliminados: ${mrDeleted.count}`);
+    const seDeleted = await prisma.tournamentScheduleEntry.deleteMany({
+          where: { tournamentId: TOURNAMENT_ID, dedupeKey: { contains: 'oshiro' } },
+    });
+    console.log(`[cleanup] TournamentScheduleEntry de Oshiro eliminados: ${seDeleted.count}`);
+    const oshiroMatches = await prisma.match.findMany({
+          where: { tournamentId: TOURNAMENT_ID, OR: [{ player1Id: oshiroId }, { player2Id: oshiroId }] },
+          select: { id: true },
+    });
+    if (oshiroMatches.length > 0) {
+          const ids = oshiroMatches.map((m) => m.id);
+          await prisma.matchResult.deleteMany({ where: { matchId: { in: ids } } });
+          await prisma.match.deleteMany({ where: { id: { in: ids } } });
+          console.log(`[cleanup] Match de Oshiro eliminados: ${oshiroMatches.length}`);
+    }
+    const liga6Groups = await prisma.group.findMany({ where: { tournamentId: TOURNAMENT_ID }, select: { id: true } });
+    if (liga6Groups.length > 0) {
+          const gpDeleted = await prisma.groupPlayer.deleteMany({
+                  where: { groupId: { in: liga6Groups.map((g) => g.id) }, playerId: oshiroId },
+          });
+          console.log(`[cleanup] GroupPlayer de Oshiro eliminados: ${gpDeleted.count}`);
+    }
+    await prisma.player.update({ where: { id: oshiroId }, data: { rosterActive: false, profileVisibility: 'hidden' } });
+    console.log('[cleanup] Oshiro E. marcado rosterActive=false, profileVisibility=hidden.');
+}
+
 
 async function main() {
-  const allPlayers = Array.from(new Set(Object.values(groups).flat()));
+  // --- Limpieza de Oshiro E. (idempotente) ---
+    console.log('[seedLiga6Nd2026] Limpiando datos de Oshiro E. en t-novak-l6...');
+    await cleanupOshiroFromLiga6();
+    console.log('[seedLiga6Nd2026] Limpieza completada.');
+  
+    const allPlayers = Array.from(new Set(Object.values(groups).flat()));
   let createdGroupMatches = 0;
   let updatedGroupMatches = 0;
   let createdKoMatches = 0;
