@@ -9,7 +9,7 @@ const CLASSIFICATION_RULE =
   'Los tres primeros de cada grupo clasifican a Play Off. Los dos peores terceros juegan Repechaje. El ganador entra a Cuartos como octavo clasificado. Cruces: 1° vs 8°, 2° vs 7°, 3° vs 6°, 4° vs 5°.';
 
 const groups = {
-  A: ['Ríos J.', 'Peralta G.', 'Ali M.', 'Oviedo M.', 'Manrique E.'],
+  A: ['Ríos J.', 'Peralta G.', 'Oviedo M.', 'Ali M.', 'Manrique E.'],
   B: ['González Días F.', 'Chantada S.', 'Sola M.', 'Cirigliano D.', 'Córdoba A.'],
   C: ['Córdoba G.', 'González Días C.', 'Tellechea L.', 'Vila E.', 'Giménez F.'],
 } as const;
@@ -60,10 +60,10 @@ const fixtures: SeedMatch[] = [
   { group: 'C', round: 2, playerA: 'Tellechea L.', playerB: 'Giménez F.', winner: 'Tellechea L.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
   { group: 'C', round: 5, playerA: 'Vila E.', playerB: 'Giménez F.', winner: 'Vila E.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
   { group: 'Repechaje', round: 0, date: '2026-05-08', time: '09:00', playerA: 'Tellechea L.', playerB: 'Sola M.', ballPlayer: 'Tellechea L.', winner: 'Sola M.', winnerScore: '3-6 / 6-3 / 10-6' },
-  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '16:00', playerA: 'Chantada S.', playerB: 'González Días F.', ballPlayer: 'Chantada S.', winner: 'González Días F.', winnerScore: '6-0 / 4-1 y abandono', status: 'retired' },
-  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '17:00', playerA: 'Ríos J.', playerB: 'Oviedo M.', ballPlayer: 'Ríos J.', winner: 'Ríos J.', winnerScore: '6-3 / 6-1' },
-  { group: 'Cuartos de Final', round: 0, date: '2026-05-11', time: '08:30', playerA: 'González Días C.', playerB: 'Peralta G.', ballPlayer: 'González Días C.', winner: 'González Días C.', winnerScore: '6-1 / 6-2' },
   { group: 'Cuartos de Final', round: 0, playerA: 'Córdoba G.', playerB: 'Sola M.', note: 'Pendiente / sin resultado cargado. Sola M. entra desde Repechaje.' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-11', time: '08:30', playerA: 'González Días C.', playerB: 'Peralta G.', ballPlayer: 'González Días C.', winner: 'González Días C.', winnerScore: '6-1 / 6-2' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '16:00', playerA: 'González Días F.', playerB: 'Chantada S.', ballPlayer: 'González Días F.', winner: 'González Días F.', winnerScore: '6-0 / 4-1 y abandono', status: 'retired' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '17:00', playerA: 'Oviedo M.', playerB: 'Ríos J.', ballPlayer: 'Oviedo M.', winner: 'Ríos J.', winnerScore: '6-3 / 6-1' },
 ];
 
 function playerId(name: string): string {

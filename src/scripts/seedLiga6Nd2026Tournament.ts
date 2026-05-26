@@ -12,8 +12,10 @@ const CLASSIFICATION_RULE =
 
 const groups = {
   A: ['Cellilli F.', 'Amezague J.', 'De Ruyck G.', 'Fedrjanic N.', 'Bataglia F.'],
-  B: ['Ballesta F.', 'Antuña A.', 'Ferrarotti E.', 'Fratini M.', 'Oshiro E.'],
+  B: ['Ballesta F.', 'Antuña A.', 'Ferrarotti E.', 'Fratini M.'],
 } as const;
+
+const REMOVED_TOURNAMENT_PLAYERS = ['Oshiro E.'] as const;
 
 type SeedMatch = {
   group: string;
@@ -45,12 +47,8 @@ const fixtures: SeedMatch[] = [
   { group: 'B', round: 5, date: '2026-03-24', time: '09:00', playerA: 'Antuña A.', playerB: 'Fratini M.', ballPlayer: 'Antuña A.', winner: 'Antuña A.', winnerScore: '6-1 / 6-1', note: 'Unificado desde Antuña R.' },
   { group: 'B', round: 1, date: '2026-04-02', time: '21:00', playerA: 'Ballesta F.', playerB: 'Ferrarotti E.', ballPlayer: 'Ballesta F.', winner: 'Ballesta F.', winnerScore: '6-1 / 6-1' },
   { group: 'B', round: 3, date: '2026-04-12', time: '16:00', playerA: 'Fratini M.', playerB: 'Ferrarotti E.', ballPlayer: 'Fratini M.', winner: 'Ferrarotti E.', winnerScore: '6-2 / 6-1' },
-  { group: 'B', round: 1, date: '2026-04-12', time: '18:00', playerA: 'Oshiro E.', playerB: 'Antuña A.', ballPlayer: 'Oshiro E.', winner: 'Antuña A.', winnerScore: '6-2 / 6-1' },
-  { group: 'B', round: 2, date: '2026-04-26', time: '16:00', playerA: 'Oshiro E.', playerB: 'Fratini M.', ballPlayer: 'Oshiro E.', winner: 'Fratini M.', winnerScore: '0-1 y abandono por lesión', scoreIsPlayerAPerspective: true, status: 'retired' },
   { group: 'B', round: 4, date: '2026-04-26', time: '19:00', playerA: 'Ferrarotti E.', playerB: 'Antuña A.', ballPlayer: 'Ferrarotti E.', winner: 'Antuña A.', winnerScore: '6-1 / 6-0' },
-  { group: 'B', round: 3, date: '2026-05-01', time: '12:45', playerA: 'Ballesta F.', playerB: 'Oshiro E.', ballPlayer: 'Ballesta F.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
   { group: 'B', round: 4, playerA: 'Ballesta F.', playerB: 'Fratini M.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
-  { group: 'B', round: 5, playerA: 'Ferrarotti E.', playerB: 'Oshiro E.', winner: 'Ferrarotti E.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
 ];
 
 const knockoutFixtures: SeedMatch[] = [
@@ -291,6 +289,41 @@ async function main() {
   await prisma.$transaction(async (tx) => {
     await tx.player.updateMany({ where: { name: 'Antuña R.' }, data: { name: 'Antuña A.', displayName: 'Antuña A.' } });
     await tx.player.updateMany({ where: { name: 'Bataglia' }, data: { name: 'Bataglia F.', displayName: 'Bataglia F.' } });
+    const removedPlayerIds = REMOVED_TOURNAMENT_PLAYERS.map((name) => playerId(name));
+
+    await tx.matchResult.deleteMany({
+      where: {
+        tournamentId: TOURNAMENT_ID,
+        OR: [
+          { playerA: { in: [...REMOVED_TOURNAMENT_PLAYERS] } },
+          { playerB: { in: [...REMOVED_TOURNAMENT_PLAYERS] } },
+        ],
+      },
+    });
+    await tx.tournamentScheduleEntry.deleteMany({
+      where: {
+        tournamentId: TOURNAMENT_ID,
+        OR: REMOVED_TOURNAMENT_PLAYERS.flatMap((name) => [
+          { dedupeKey: { contains: name.toLowerCase() } },
+          { dedupeKey: { contains: name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() } },
+        ]),
+      },
+    });
+    await tx.match.deleteMany({
+      where: {
+        tournamentId: TOURNAMENT_ID,
+        OR: [
+          { player1Id: { in: removedPlayerIds } },
+          { player2Id: { in: removedPlayerIds } },
+        ],
+      },
+    });
+    await tx.groupPlayer.deleteMany({
+      where: {
+        playerId: { in: removedPlayerIds },
+        group: { tournamentId: TOURNAMENT_ID },
+      },
+    });
 
     for (const name of allPlayers) {
       await tx.player.upsert({
