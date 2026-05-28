@@ -23,6 +23,10 @@
     "data:seed:liga4nd": "tsx src/scripts/seedLiga4Nd2026Tournament.ts",
     "data:seed:liga5nd": "tsx src/scripts/seedLiga5Nd2026Tournament.ts",
     "data:seed:liga6nd": "tsx src/scripts/seedLiga6Nd2026Tournament.ts",
+    "data:seed:rafa-l2": "tsx src/scripts/seedRafaNadalLiga2Nd2026Tournament.ts",
+    "data:seed:rafa-l5": "tsx src/scripts/seedRafaNadalLiga5Nd2026Tournament.ts",
+    "data:seed:rafa-l6": "tsx src/scripts/seedRafaNadalLiga6Nd2026Tournament.ts",
+    "data:seed:rafael-l1": "tsx src/scripts/seedRafaelNadalLiga1Nd2026Tournament.ts",
     "data:seed:roster": "tsx src/scripts/seedRosterPlayers.ts"
   },
   "dependencies": {

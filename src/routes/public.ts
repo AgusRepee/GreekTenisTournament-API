@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { buildPublicPlayerProfile } from '../services/buildPublicPlayerProfile.js';
 import { mergeActiveRosterRankingRows } from '../services/activeRosterRankingRows.js';
+import {
+  buildPublicGroupStandings,
+  findTournamentBySlugOrId,
+} from '../services/buildPublicGroupStandings.js';
 import { comparePublicRankingRows, type RankingRowWithPlayer } from '../services/rankingPublicSort.js';
 
 export const publicRouter = Router();
@@ -85,6 +89,7 @@ async function buildTournamentSchedulePayload(tournamentId: string) {
       include: {
         player1: { select: { id: true, name: true } },
         player2: { select: { id: true, name: true } },
+        group: { select: { key: true } },
       },
     }),
     prisma.tournamentScheduleEntry.findMany({
@@ -179,6 +184,44 @@ publicRouter.get('/elimination', async (req, res, next) => {
   }
 });
 
+/** Tabla de grupos calculada desde `MatchResult` + partidos de grupo completados en `Match`. */
+publicRouter.get('/tournaments/:slug/group-standings', async (req, res, next) => {
+  try {
+    const hit = await findTournamentBySlugOrId(prisma, req.params.slug);
+    if (!hit) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    const payload = await buildPublicGroupStandings(prisma, hit.id);
+    if (!payload) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.json(payload);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Misma tabla por `tournamentId` (el SPA suele tener el id aunque el slug solo exista en MySQL). */
+publicRouter.get('/group-standings', async (req, res, next) => {
+  try {
+    const tid = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
+    if (!tid) {
+      res.status(400).json({ error: 'tournamentId query required' });
+      return;
+    }
+    const payload = await buildPublicGroupStandings(prisma, tid);
+    if (!payload) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    res.json(payload);
+  } catch (e) {
+    next(e);
+  }
+});
+
 /** Cuadro KO público (solo partidos persistidos si la eliminación está confirmada o en curso). */
 publicRouter.get('/tournaments/:slug/elimination', async (req, res, next) => {
   try {
@@ -206,13 +249,25 @@ publicRouter.get('/tournaments/:slug', async (req, res, next) => {
   try {
     const row = await prisma.tournament.findFirst({
       where: { OR: [{ slug: req.params.slug }, { id: req.params.slug }] },
-      include: { groups: true, leagues: true },
+      include: {
+        groups: {
+          orderBy: { key: 'asc' },
+          include: {
+            players: {
+              orderBy: { seed: 'asc' },
+              include: { player: { select: { id: true, name: true, displayName: true } } },
+            },
+          },
+        },
+        leagues: true,
+      },
     });
     if (!row) {
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    res.json(row);
+    const groupStandings = await buildPublicGroupStandings(prisma, row.id);
+    res.json({ ...row, groupStandings: groupStandings?.groups ?? [] });
   } catch (e) {
     next(e);
   }
