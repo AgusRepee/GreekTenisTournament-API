@@ -8,7 +8,7 @@ const LEAGUE_NUM = 2;
 const groups = {
   A: ['Colomer S.', 'Masciotra J.', 'Santi G.', 'Sarquis P.', 'Molina L.'],
   B: ['Ferdkin B.', 'Mayer D.', 'Komesu M.', 'Cancio M.', 'Repecka A.'],
-  C: ['Guareschi A.', 'Urbini A.', 'Fusto B.', 'Monzon M.', 'Ruiz J.'],
+  C: ['Guareschi A.', 'Urbini A.', 'Fusto B.', 'Monzón M.', 'Ruiz J.'],
 } as const;
 
 type SeedMatch = {
@@ -41,15 +41,15 @@ const fixtures: SeedMatch[] = [
   { group: 'B', round: 5, playerA: 'Cancio M.', playerB: 'Komesu M.', ballPlayer: 'Cancio M.' },
   { group: 'B', round: 5, playerA: 'Repecka A.', playerB: 'Mayer D.', ballPlayer: 'Repecka A.' },
   { group: 'C', round: 1, playerA: 'Guareschi A.', playerB: 'Urbini A.', ballPlayer: 'Guareschi A.' },
-  { group: 'C', round: 1, playerA: 'Fusto B.', playerB: 'Monzon M.', ballPlayer: 'Fusto B.' },
-  { group: 'C', round: 2, playerA: 'Monzon M.', playerB: 'Guareschi A.', ballPlayer: 'Monzon M.' },
+  { group: 'C', round: 1, playerA: 'Fusto B.', playerB: 'Monzón M.', ballPlayer: 'Fusto B.' },
+  { group: 'C', round: 2, playerA: 'Monzón M.', playerB: 'Guareschi A.', ballPlayer: 'Monzón M.' },
   { group: 'C', round: 2, playerA: 'Fusto B.', playerB: 'Ruiz J.', ballPlayer: 'Fusto B.' },
   { group: 'C', round: 3, playerA: 'Guareschi A.', playerB: 'Fusto B.', ballPlayer: 'Guareschi A.' },
   { group: 'C', round: 3, playerA: 'Ruiz J.', playerB: 'Urbini A.', ballPlayer: 'Ruiz J.' },
   { group: 'C', round: 4, playerA: 'Ruiz J.', playerB: 'Guareschi A.', ballPlayer: 'Ruiz J.' },
-  { group: 'C', round: 4, playerA: 'Urbini A.', playerB: 'Monzon M.', ballPlayer: 'Urbini A.' },
+  { group: 'C', round: 4, playerA: 'Urbini A.', playerB: 'Monzón M.', ballPlayer: 'Urbini A.' },
   { group: 'C', round: 5, playerA: 'Urbini A.', playerB: 'Fusto B.', ballPlayer: 'Urbini A.' },
-  { group: 'C', round: 5, playerA: 'Monzon M.', playerB: 'Ruiz J.', ballPlayer: 'Monzon M.' },
+  { group: 'C', round: 5, playerA: 'Monzón M.', playerB: 'Ruiz J.', ballPlayer: 'Monzón M.' },
 ];
 
 function normName(name: string): string {
@@ -117,7 +117,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Masciotra J. (P) vs Santi G.', 'Colomer S. (P) vs Sarquis P.', 'Libre: Molina L.'],
           B: ['Ferdkin B. (P) vs Cancio M.', 'Komesu M. (P) vs Repecka A.', 'Libre: Mayer D.'],
-          C: ['Guareschi A. (P) vs Urbini A.', 'Fusto B. (P) vs Monzon M.', 'Libre: Ruiz J.'],
+          C: ['Guareschi A. (P) vs Urbini A.', 'Fusto B. (P) vs Monzón M.', 'Libre: Ruiz J.'],
         },
       },
       {
@@ -125,7 +125,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Sarquis P. (P) vs Masciotra J.', 'Colomer S. (P) vs Molina L.', 'Libre: Santi G.'],
           B: ['Repecka A. (P) vs Ferdkin B.', 'Komesu M. (P) vs Mayer D.', 'Libre: Cancio M.'],
-          C: ['Monzon M. (P) vs Guareschi A.', 'Fusto B. (P) vs Ruiz J.', 'Libre: Urbini A.'],
+          C: ['Monzón M. (P) vs Guareschi A.', 'Fusto B. (P) vs Ruiz J.', 'Libre: Urbini A.'],
         },
       },
       {
@@ -133,7 +133,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Masciotra J. (P) vs Colomer S.', 'Molina L. (P) vs Santi G.', 'Libre: Sarquis P.'],
           B: ['Ferdkin B. (P) vs Komesu M.', 'Mayer D. (P) vs Cancio M.', 'Libre: Repecka A.'],
-          C: ['Guareschi A. (P) vs Fusto B.', 'Ruiz J. (P) vs Urbini A.', 'Libre: Monzon M.'],
+          C: ['Guareschi A. (P) vs Fusto B.', 'Ruiz J. (P) vs Urbini A.', 'Libre: Monzón M.'],
         },
       },
       {
@@ -141,7 +141,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Molina L. (P) vs Masciotra J.', 'Santi G. (P) vs Sarquis P.', 'Libre: Colomer S.'],
           B: ['Mayer D. (P) vs Ferdkin B.', 'Cancio M. (P) vs Repecka A.', 'Libre: Komesu M.'],
-          C: ['Ruiz J. (P) vs Guareschi A.', 'Urbini A. (P) vs Monzon M.', 'Libre: Fusto B.'],
+          C: ['Ruiz J. (P) vs Guareschi A.', 'Urbini A. (P) vs Monzón M.', 'Libre: Fusto B.'],
         },
       },
       {
@@ -149,7 +149,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Santi G. (P) vs Colomer S.', 'Sarquis P. (P) vs Molina L.', 'Libre: Masciotra J.'],
           B: ['Cancio M. (P) vs Komesu M.', 'Repecka A. (P) vs Mayer D.', 'Libre: Ferdkin B.'],
-          C: ['Urbini A. (P) vs Fusto B.', 'Monzon M. (P) vs Ruiz J.', 'Libre: Guareschi A.'],
+          C: ['Urbini A. (P) vs Fusto B.', 'Monzón M. (P) vs Ruiz J.', 'Libre: Guareschi A.'],
         },
       },
     ],
@@ -175,7 +175,7 @@ async function main() {
         startDate: new Date('2026-05-26T00:00:00.000Z'),
         endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
-        coverImage: 'rafa-naranja.png',
+        coverImage: 'rafa-naranja.webp',
         slotsTotal: allPlayers.length,
         slotsTaken: allPlayers.length,
         ligaDoc: ligaDoc(),
@@ -186,7 +186,7 @@ async function main() {
         tournamentType: 'greek500',
         status: 'upcoming',
         location: 'Club de Tenis',
-        coverImage: 'rafa-naranja.png',
+        coverImage: 'rafa-naranja.webp',
         slotsTotal: allPlayers.length,
         slotsTaken: allPlayers.length,
         ligaDoc: ligaDoc(),

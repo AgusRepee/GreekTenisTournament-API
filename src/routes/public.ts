@@ -44,8 +44,14 @@ publicRouter.get('/tournaments', async (_req, res, next) => {
         status: true,
         startDate: true,
         endDate: true,
+        location: true,
         coverImage: true,
         tournamentType: true,
+        slotsTotal: true,
+        slotsTaken: true,
+        winnerId: true,
+        finalistId: true,
+        leagues: { orderBy: { leagueNum: 'asc' }, select: { leagueNum: true } },
       },
     });
     res.json(rows);
@@ -114,6 +120,20 @@ publicRouter.get('/schedule', async (req, res, next) => {
       return;
     }
     res.json(payload);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** Agenda pública completa o filtrada, sin JWT. */
+publicRouter.get('/schedules', async (req, res, next) => {
+  try {
+    const tid = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
+    const rows = await prisma.tournamentScheduleEntry.findMany({
+      where: tid ? { tournamentId: tid } : undefined,
+      orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
+    });
+    res.json(rows);
   } catch (e) {
     next(e);
   }
@@ -222,6 +242,32 @@ publicRouter.get('/group-standings', async (req, res, next) => {
   }
 });
 
+/** Resultados públicos (`MatchResult`) sin JWT: hidrata pantallas públicas en modo API. */
+publicRouter.get('/match-results', async (req, res, next) => {
+  try {
+    const tid = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
+    const rows = await prisma.matchResult.findMany({
+      where: tid ? { tournamentId: tid } : undefined,
+      orderBy: [{ tournamentId: 'asc' }, { roundNum: 'asc' }, { updatedAt: 'desc' }],
+      include: {
+        match: {
+          select: {
+            id: true,
+            tournamentId: true,
+            group: { select: { id: true, key: true, displayName: true } },
+            player1: { select: { id: true, name: true, displayName: true } },
+            player2: { select: { id: true, name: true, displayName: true } },
+            winner: { select: { id: true, name: true, displayName: true } },
+          },
+        },
+      },
+    });
+    res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
 /** Cuadro KO público (solo partidos persistidos si la eliminación está confirmada o en curso). */
 publicRouter.get('/tournaments/:slug/elimination', async (req, res, next) => {
   try {
@@ -259,15 +305,87 @@ publicRouter.get('/tournaments/:slug', async (req, res, next) => {
             },
           },
         },
-        leagues: true,
+        leagues: { orderBy: { leagueNum: 'asc' }, include: { elimination: true } },
       },
     });
     if (!row) {
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    const groupStandings = await buildPublicGroupStandings(prisma, row.id);
-    res.json({ ...row, groupStandings: groupStandings?.groups ?? [] });
+    const [matches, matchResults, schedules, groupStandings] = await Promise.all([
+      prisma.match.findMany({
+        where: { tournamentId: row.id },
+        orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }, { roundLabel: 'asc' }, { id: 'asc' }],
+        include: {
+          group: { select: { id: true, key: true, displayName: true } },
+          tournamentLeague: { select: { id: true, leagueNum: true } },
+          player1: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
+          player2: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
+          winner: { select: { id: true, name: true, displayName: true } },
+          loser: { select: { id: true, name: true, displayName: true } },
+        },
+      }),
+      prisma.matchResult.findMany({
+        where: { tournamentId: row.id },
+        orderBy: [{ roundNum: 'asc' }, { updatedAt: 'desc' }],
+        include: {
+          match: {
+            select: {
+              id: true,
+              group: { select: { id: true, key: true, displayName: true } },
+              player1: { select: { id: true, name: true, displayName: true } },
+              player2: { select: { id: true, name: true, displayName: true } },
+              winner: { select: { id: true, name: true, displayName: true } },
+            },
+          },
+        },
+      }),
+      prisma.tournamentScheduleEntry.findMany({
+        where: { tournamentId: row.id },
+        orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
+      }),
+      buildPublicGroupStandings(prisma, row.id),
+    ]);
+
+    const elimination = row.leagues.map((league) => ({
+      league,
+      bracket: league.elimination,
+      matches: matches.filter((m) => m.tournamentLeagueId === league.id && m.stage !== 'group' && m.stage !== 'interzonal'),
+    }));
+
+    const tournament = {
+      id: row.id,
+      slug: row.slug,
+      name: row.name,
+      tournamentType: row.tournamentType,
+      status: row.status,
+      startDate: row.startDate,
+      endDate: row.endDate,
+      location: row.location,
+      coverImage: row.coverImage,
+      slotsTotal: row.slotsTotal,
+      slotsTaken: row.slotsTaken,
+      ligaDoc: row.ligaDoc,
+      preclasificacionJson: row.preclasificacionJson,
+      winnerId: row.winnerId,
+      finalistId: row.finalistId,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+
+    res.json({
+      ...tournament,
+      tournament,
+      leagues: row.leagues,
+      groups: row.groups,
+      matches,
+      matchResults,
+      schedules,
+      standings: groupStandings?.groups ?? [],
+      groupStandings: groupStandings?.groups ?? [],
+      elimination,
+      preclasificacion: row.preclasificacionJson ?? null,
+    });
   } catch (e) {
     next(e);
   }
@@ -319,6 +437,34 @@ publicRouter.get('/rankings', async (req, res, next) => {
       /** Lista plana (todas las ligas), útil para clientes legacy */
       leagueRows: typed.sort(comparePublicRankingRows),
     });
+  } catch (e) {
+    next(e);
+  }
+});
+
+publicRouter.get('/players', async (_req, res, next) => {
+  try {
+    const rows = await prisma.player.findMany({
+      where: { profileVisibility: 'active', rosterActive: true },
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        displayName: true,
+        name: true,
+        category: true,
+        birthDate: true,
+        nationality: true,
+        playingHand: true,
+        heightCm: true,
+        profileBio: true,
+        profileImage: true,
+        profileVisibility: true,
+        rosterActive: true,
+      },
+    });
+    res.json(rows);
   } catch (e) {
     next(e);
   }
