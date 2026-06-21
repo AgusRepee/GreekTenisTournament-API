@@ -4,6 +4,7 @@ dist/
 .env.local
 .env.production
 .env.staging
+.env.bak-smoke
 !.env.example
 !.env.hostinger.example
 .DS_Store

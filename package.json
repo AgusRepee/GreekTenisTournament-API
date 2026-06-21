@@ -31,7 +31,15 @@
     "data:seed:rafa-l5": "tsx src/scripts/seedRafaNadalLiga5Nd2026Tournament.ts",
     "data:seed:rafa-l6": "tsx src/scripts/seedRafaNadalLiga6Nd2026Tournament.ts",
     "data:seed:rafael-l1": "tsx src/scripts/seedRafaelNadalLiga1Nd2026Tournament.ts",
-    "data:seed:roster": "tsx src/scripts/seedRosterPlayers.ts"
+    "data:seed:roster": "tsx src/scripts/seedRosterPlayers.ts",
+    "data:seed:dates": "tsx src/scripts/seedTournamentDatesNd2026.ts",
+    "data:seed:novak-l246": "tsx src/scripts/seedNovakLigas246Nd2026Tournament.ts",
+    "data:seed:prepare-admin": "tsx src/scripts/seedPrepareAdminProduction.ts",
+    "data:seed:clear-results": "tsx src/scripts/seedClearResultsNd2026.ts",
+    "data:seed:clear-novak": "tsx src/scripts/seedClearNovakResultsNd2026.ts",
+    "data:seed:covers": "tsx src/scripts/seedTournamentCoverImagesNd2026.ts",
+    "data:seed:cross-league": "tsx src/scripts/seedCrossLeagueRankingExamples.ts",
+    "data:merge-duplicates": "tsx src/scripts/mergeDuplicatePlayers.ts"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "^6.19.0",
@@ -51,6 +59,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.10.0",
     "@types/nodemailer": "^8.0.0",
+    "mysql-memory-server": "^1.14.1",
     "prisma": "^6.19.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",

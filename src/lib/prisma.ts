@@ -12,6 +12,7 @@ function createPrismaClient(): PrismaClient {
     password: cfg.password,
     database: cfg.database,
     connectionLimit: 5,
+    allowPublicKeyRetrieval: true,
   });
   return new PrismaClient({
     adapter,
