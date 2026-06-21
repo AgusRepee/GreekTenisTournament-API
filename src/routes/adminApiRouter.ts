@@ -7,6 +7,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import type { MatchResult, MatchResultStatus, ScheduleStatus, TournamentCatalogType } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
+import { findTournamentAdminMetaById } from '../services/tournamentMetaQuery.js';
 import { appendAudit } from '../services/auditAppend.js';
 import { validateGroupPhaseConfirm, loadEliminationWarningForReopen } from '../services/groupPhaseConfirm.js';
 import { replaceEliminationMatchesFromBracket } from '../services/createEliminationKnockoutMatches.js';
@@ -17,14 +18,79 @@ import {
   isKnockoutEliminationMatch,
   KnockoutEditBlockedError,
 } from '../services/knockoutAdvanceFromMatchResult.js';
-import { recalculateRankings } from '../services/recalculateRankings.js';
+import { recalculateRankings, categoryToLeague, leagueToCategory } from '../services/recalculateRankings.js';
+import { maybeRecalculateRankingsAfterMatchResults } from '../services/rankingMilestoneFilter.js';
 import { assertPreclasificacionForWrite } from '../services/tournamentPreclasificacionJson.js';
+import { assertGroupRosterOverrideForWrite } from '../services/tournamentGroupRosterJson.js';
+import { syncTournamentGroupRosterInTx } from '../services/syncTournamentGroupRoster.js';
 import {
   assertScheduleAllowsPlayedNormalResult,
   ScheduleRequiredForPlayedError,
 } from '../services/scheduleGuardForMatchResult.js';
+import { clearFeaturedForHomeAfterResultInTx } from '../services/clearFeaturedForHomeAfterResult.js';
+import { resolveMatchResultMatchId } from '../services/resolveMatchResultMatchId.js';
+import { normalizeWalkoverScoreLetter } from '../services/walkoverWinnerSide.js';
+import {
+  normalizeQuickPendingPhase,
+  parseQuickPendingStatusType,
+  queryQuickCommandPending,
+} from '../services/quickCommandPending.js';
+import { handleQuickCommandConfirm } from '../services/quickCommandConfirm.js';
 
 export const adminApiRouter = Router();
+
+adminApiRouter.get('/quick-command/pending', async (req, res, next) => {
+  try {
+    const tournamentId = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
+    const phaseRaw = typeof req.query.phase === 'string' ? req.query.phase.trim() : '';
+    const statusRaw = typeof req.query.statusType === 'string' ? req.query.statusType.trim() : 'all';
+    const leagueRaw = typeof req.query.league === 'string' ? req.query.league.trim() : '';
+
+    if (!tournamentId) {
+      res.status(400).json({ error: 'tournamentId requerido' });
+      return;
+    }
+    const phase = normalizeQuickPendingPhase(phaseRaw);
+    if (!phase) {
+      res.status(400).json({ error: 'phase inválida' });
+      return;
+    }
+    const statusType = parseQuickPendingStatusType(statusRaw);
+    if (!statusType) {
+      res.status(400).json({ error: 'statusType inválido' });
+      return;
+    }
+    const league = leagueRaw ? Number(leagueRaw) : undefined;
+    if (leagueRaw && !Number.isFinite(league)) {
+      res.status(400).json({ error: 'league inválida' });
+      return;
+    }
+
+    const payload = await queryQuickCommandPending(prisma, {
+      tournamentId,
+      league,
+      phase,
+      statusType,
+    });
+    res.json(payload);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** POST /quick-command/confirm — confirma acción del asistente (ej. save_result). */
+adminApiRouter.post('/quick-command/confirm', async (req, res, next) => {
+  try {
+    const result = await handleQuickCommandConfirm(req.body as Record<string, unknown>);
+    if (!result.ok) {
+      res.status(result.status).json({ error: result.error, code: 'code' in result ? result.code : undefined });
+      return;
+    }
+    res.json(result);
+  } catch (e) {
+    next(e);
+  }
+});
 
 /** GET /match-results — lista para hidratar la UI (opcional ?tournamentId=). */
 adminApiRouter.get('/match-results', async (req, res, next) => {
@@ -102,28 +168,7 @@ adminApiRouter.get('/tournaments/:id/matches', async (req, res, next) => {
 /** GET /tournaments/:id — metadatos del torneo (preclasificación JSON, plantilla, etc.). */
 adminApiRouter.get('/tournaments/:id', async (req, res, next) => {
   try {
-    const row = await prisma.tournament.findUnique({
-      where: { id: req.params.id },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        tournamentType: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-        location: true,
-        coverImage: true,
-        slotsTotal: true,
-        slotsTaken: true,
-        ligaDoc: true,
-        preclasificacionJson: true,
-        winnerId: true,
-        finalistId: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const row = await findTournamentAdminMetaById(req.params.id);
     if (!row) {
       res.status(404).json({ error: 'Torneo no encontrado' });
       return;
@@ -160,6 +205,10 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
     }
 
     const status = mapResultStatus(typeof body.status === 'string' ? body.status : undefined);
+    let score = body.score != null ? String(body.score) : null;
+    if (status === 'walkover' && score) {
+      score = normalizeWalkoverScoreLetter(score);
+    }
     const payload = {
       dedupeKey: dedupeKey.trim(),
       tournamentId: tournamentId.trim(),
@@ -168,7 +217,7 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
       roundNum: typeof body.round === 'number' ? body.round : (body.roundNum as number | undefined),
       playerA: String(body.playerA ?? ''),
       playerB: String(body.playerB ?? ''),
-      score: body.score != null ? String(body.score) : null,
+      score,
       setsJson: body.setsJson !== undefined ? (body.setsJson as object) : undefined,
       status,
       playedAt:
@@ -177,12 +226,12 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
           : null,
     };
 
-    const mid = payload.matchId?.trim();
     const row = await prisma.$transaction(async (tx) => {
       await assertScheduleAllowsPlayedNormalResult(tx, payload.dedupeKey, payload.status, payload.score);
-      if (mid) {
+      const linkedMatchId = await resolveMatchResultMatchId(tx, payload.matchId, payload.dedupeKey);
+      if (linkedMatchId) {
         const m = await tx.match.findUnique({
-          where: { id: mid },
+          where: { id: linkedMatchId },
           include: { player1: true, player2: true },
         });
         if (m && isKnockoutEliminationMatch(m)) {
@@ -194,7 +243,7 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
         create: {
           dedupeKey: payload.dedupeKey,
           tournamentId: payload.tournamentId,
-          matchId: payload.matchId,
+          matchId: linkedMatchId,
           groupKey: payload.groupKey ?? null,
           roundNum: payload.roundNum ?? null,
           playerA: payload.playerA,
@@ -205,7 +254,7 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
           playedAt: payload.playedAt,
         },
         update: {
-          matchId: payload.matchId,
+          matchId: linkedMatchId,
           groupKey: payload.groupKey ?? null,
           roundNum: payload.roundNum ?? null,
           playerA: payload.playerA,
@@ -220,13 +269,14 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
         matchResult: r,
         payload: {
           tournamentId: payload.tournamentId,
-          matchId: payload.matchId,
+          matchId: linkedMatchId ?? undefined,
           status: payload.status,
           score: payload.score,
           playerA: payload.playerA,
           playerB: payload.playerB,
         },
       });
+      await clearFeaturedForHomeAfterResultInTx(tx, payload.dedupeKey, payload.status, payload.score);
       return r;
     });
 
@@ -238,7 +288,7 @@ async function upsertMatchResultEndpoint(req: Request, res: Response, next: Next
       afterJson: row,
     });
 
-    await recalculateRankings(prisma);
+    await maybeRecalculateRankingsAfterMatchResults(prisma, [row], recalculateRankings);
 
     res.json(row);
   } catch (e) {
@@ -288,12 +338,19 @@ adminApiRouter.post('/results/bulk-save', async (req, res, next) => {
         const dedupeKey = String(body.dedupeKey ?? '');
         const tournamentId = String(body.tournamentId ?? '');
         const status = mapResultStatus(typeof body.status === 'string' ? body.status : undefined);
-        const mid = typeof body.matchId === 'string' ? body.matchId.trim() : '';
-        const scoreStr = body.score != null ? String(body.score) : null;
+        let scoreStr = body.score != null ? String(body.score) : null;
+        if (status === 'walkover' && scoreStr) {
+          scoreStr = normalizeWalkoverScoreLetter(scoreStr);
+        }
         await assertScheduleAllowsPlayedNormalResult(tx, dedupeKey, status, scoreStr);
-        if (mid) {
+        const linkedMatchId = await resolveMatchResultMatchId(
+          tx,
+          typeof body.matchId === 'string' ? body.matchId : undefined,
+          dedupeKey,
+        );
+        if (linkedMatchId) {
           const m = await tx.match.findUnique({
-            where: { id: mid },
+            where: { id: linkedMatchId },
             include: { player1: true, player2: true },
           });
           if (m && isKnockoutEliminationMatch(m)) {
@@ -308,7 +365,7 @@ adminApiRouter.post('/results/bulk-save', async (req, res, next) => {
           create: {
             dedupeKey,
             tournamentId,
-            matchId: typeof body.matchId === 'string' ? body.matchId : undefined,
+            matchId: linkedMatchId,
             groupKey: typeof body.group === 'string' ? body.group : undefined,
             roundNum: typeof body.round === 'number' ? body.round : undefined,
             playerA: String(body.playerA ?? ''),
@@ -322,7 +379,7 @@ adminApiRouter.post('/results/bulk-save', async (req, res, next) => {
                 : null,
           },
           update: {
-            matchId: typeof body.matchId === 'string' ? body.matchId : undefined,
+            matchId: linkedMatchId,
             groupKey: typeof body.group === 'string' ? body.group : undefined,
             roundNum: typeof body.round === 'number' ? body.round : undefined,
             playerA: String(body.playerA ?? ''),
@@ -340,13 +397,14 @@ adminApiRouter.post('/results/bulk-save', async (req, res, next) => {
           matchResult: r,
           payload: {
             tournamentId,
-            matchId: typeof body.matchId === 'string' ? body.matchId : undefined,
+            matchId: linkedMatchId ?? undefined,
             status,
             score: scoreStr,
             playerA: String(body.playerA ?? ''),
             playerB: String(body.playerB ?? ''),
           },
         });
+        await clearFeaturedForHomeAfterResultInTx(tx, dedupeKey, status, scoreStr);
         rows.push(r);
       }
       return rows;
@@ -358,7 +416,7 @@ adminApiRouter.post('/results/bulk-save', async (req, res, next) => {
         typeof list.results[0]?.tournamentId === 'string' ? String(list.results[0].tournamentId) : undefined,
       payload: { count: out.length },
     });
-    await recalculateRankings(prisma);
+    await maybeRecalculateRankingsAfterMatchResults(prisma, out, recalculateRankings);
     res.json({ ok: true, count: out.length, ids: out.map((r) => r.id) });
   } catch (e) {
     if (e instanceof ScheduleRequiredForPlayedError) {
@@ -488,6 +546,17 @@ async function saveSchedule(req: Request, res: Response, next: NextFunction) {
           : null;
     const note = typeof body.note === 'string' ? body.note : null;
     const confirmedAt = typeof body.confirmedAt === 'number' ? Math.floor(body.confirmedAt) : null;
+    const featuredForHome = body.featuredForHome === true;
+
+    if (featuredForHome) {
+      const others = await prisma.tournamentScheduleEntry.count({
+        where: { featuredForHome: true, NOT: { dedupeKey } },
+      });
+      if (others >= 5) {
+        res.status(400).json({ error: 'Máximo 5 partidos importantes en la home. Quitá otro antes de agregar este.' });
+        return;
+      }
+    }
 
     const row = await prisma.tournamentScheduleEntry.upsert({
       where: { dedupeKey },
@@ -501,6 +570,7 @@ async function saveSchedule(req: Request, res: Response, next: NextFunction) {
         venue,
         note,
         confirmedAt,
+        featuredForHome,
       },
       update: {
         scheduleStatus,
@@ -508,6 +578,7 @@ async function saveSchedule(req: Request, res: Response, next: NextFunction) {
         time,
         venue,
         note,
+        featuredForHome,
         ...(confirmedAt != null ? { confirmedAt } : {}),
       },
     });
@@ -822,19 +893,23 @@ adminApiRouter.post('/tournament-leagues/:lid/elimination/confirm', async (req, 
       league: String(league.leagueNum),
       payload: { matchesCreated: created.created },
     });
-    await recalculateRankings(prisma);
     res.json({ ok: true, league: updatedLeague, matchesCreated: created.created });
   } catch (e) {
     next(e);
   }
 });
 
-/** PATCH /tournaments/:id — metadata: `tournamentType` y/o `preclasificacion` (snapshot JSON o `null` para borrar). */
+/** PATCH /tournaments/:id — metadata: `tournamentType`, `preclasificacion`, `groupRosterOverride`. */
 adminApiRouter.patch('/tournaments/:id', async (req, res, next) => {
   try {
     const tid = req.params.id;
-    const body = req.body as { tournamentType?: string; preclasificacion?: unknown | null };
+    const body = req.body as {
+      tournamentType?: string;
+      preclasificacion?: unknown | null;
+      groupRosterOverride?: unknown | null;
+    };
     const data: Prisma.TournamentUpdateInput = {};
+    let rosterSync: Record<string, string[]> | null = null;
 
     if (body.tournamentType !== undefined) {
       const tt = body.tournamentType;
@@ -859,15 +934,38 @@ adminApiRouter.patch('/tournaments/:id', async (req, res, next) => {
       }
     }
 
-    if (Object.keys(data).length === 0) {
-      res.status(400).json({ error: 'Enviá tournamentType y/o preclasificacion' });
+    if ('groupRosterOverride' in body) {
+      try {
+        rosterSync = body.groupRosterOverride === null ? {} : assertGroupRosterOverrideForWrite(body.groupRosterOverride);
+      } catch (err) {
+        res.status(400).json({ error: err instanceof Error ? err.message : 'groupRosterOverride inválido' });
+        return;
+      }
+    }
+
+    if (Object.keys(data).length === 0 && rosterSync === null) {
+      res.status(400).json({ error: 'Enviá tournamentType, preclasificacion y/o groupRosterOverride' });
       return;
     }
 
-    const row = await prisma.tournament.update({
-      where: { id: tid },
-      data,
+    const row = await prisma.$transaction(async (tx) => {
+      let updated = await tx.tournament.findUnique({ where: { id: tid } });
+      if (!updated) return null;
+      if (Object.keys(data).length > 0) {
+        updated = await tx.tournament.update({ where: { id: tid }, data });
+      }
+      if (rosterSync !== null) {
+        await syncTournamentGroupRosterInTx(tx, tid, rosterSync);
+        updated = await tx.tournament.findUnique({ where: { id: tid } });
+      }
+      return updated;
     });
+
+    if (!row) {
+      res.status(404).json({ error: 'Torneo no encontrado' });
+      return;
+    }
+
     await appendAudit(prisma, {
       action: 'tournament_patch',
       entityType: 'Tournament',
@@ -886,6 +984,14 @@ adminApiRouter.post('/tournaments/:id/finalize', async (req, res, next) => {
   try {
     const tid = req.params.id;
     const body = req.body as { championId?: string; finalistId?: string };
+    const existing = await prisma.tournament.findUnique({
+      where: { id: tid },
+      include: { leagues: true },
+    });
+    if (!existing) {
+      res.status(404).json({ error: 'Torneo no encontrado' });
+      return;
+    }
     const row = await prisma.tournament.update({
       where: { id: tid },
       data: {
@@ -894,6 +1000,33 @@ adminApiRouter.post('/tournaments/:id/finalize', async (req, res, next) => {
         finalistId: typeof body.finalistId === 'string' ? body.finalistId : undefined,
       },
     });
+    const leagueNums = [...new Set(existing.leagues.map((l) => l.leagueNum))].sort((a, b) => a - b);
+    const fromLeague = leagueNums.length === 1 ? leagueNums[0]! : null;
+    const promotionCandidates: Array<{
+      playerId: string;
+      role: 'champion' | 'finalist';
+      fromLeague: number;
+      suggestedLeague: number | null;
+    }> = [];
+    if (fromLeague != null && fromLeague > 1) {
+      const suggestedLeague = fromLeague - 1;
+      if (typeof body.championId === 'string' && body.championId.trim()) {
+        promotionCandidates.push({
+          playerId: body.championId.trim(),
+          role: 'champion',
+          fromLeague,
+          suggestedLeague,
+        });
+      }
+      if (typeof body.finalistId === 'string' && body.finalistId.trim()) {
+        promotionCandidates.push({
+          playerId: body.finalistId.trim(),
+          role: 'finalist',
+          fromLeague,
+          suggestedLeague,
+        });
+      }
+    }
     await appendAudit(prisma, {
       action: 'finalize_tournament',
       entityType: 'Tournament',
@@ -902,7 +1035,42 @@ adminApiRouter.post('/tournaments/:id/finalize', async (req, res, next) => {
       afterJson: row,
     });
     await recalculateRankings(prisma);
-    res.json(row);
+    res.json({ ...row, promotionCandidates });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** POST /players/:id/promote-league — cambia la liga actual del jugador sin mover puntos históricos. */
+adminApiRouter.post('/players/:id/promote-league', async (req, res, next) => {
+  try {
+    const pid = req.params.id;
+    const body = req.body as { targetLeague?: number; note?: string };
+    const targetLeague = body.targetLeague;
+    if (typeof targetLeague !== 'number' || !Number.isInteger(targetLeague) || targetLeague < 1 || targetLeague > 6) {
+      res.status(400).json({ error: 'targetLeague inválida (entero 1–6)' });
+      return;
+    }
+    const player = await prisma.player.findUnique({ where: { id: pid } });
+    if (!player) {
+      res.status(404).json({ error: 'Jugador no encontrado' });
+      return;
+    }
+    const fromLeague = categoryToLeague(player.category);
+    const newCategory = leagueToCategory(targetLeague);
+    const updated = await prisma.player.update({
+      where: { id: pid },
+      data: { category: newCategory },
+    });
+    await appendAudit(prisma, {
+      action: 'player_league_promotion',
+      entityType: 'Player',
+      entityId: pid,
+      payload: { fromLeague, toLeague: targetLeague, note: body.note ?? null },
+      afterJson: updated as unknown as Record<string, unknown>,
+    });
+    await recalculateRankings(prisma);
+    res.json({ ok: true, player: updated, fromLeague, toLeague: targetLeague });
   } catch (e) {
     next(e);
   }
@@ -949,6 +1117,149 @@ adminApiRouter.get('/tournaments/:id/audit', async (req, res, next) => {
       take,
     });
     res.json(rows);
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** GET /news — todas las noticias para el panel admin. */
+adminApiRouter.get('/news', async (_req, res, next) => {
+  try {
+    const { mapAdminNewsRow } = await import('../services/adminNewsMap.js');
+    const rows = await prisma.news.findMany();
+    rows.sort((a, b) => {
+      const aPinned = a.pinnedAt != null;
+      const bPinned = b.pinnedAt != null;
+      if (aPinned && bPinned) return a.pinnedAt!.getTime() - b.pinnedAt!.getTime();
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      const aPub = (a.publishedAt ?? a.createdAt).getTime();
+      const bPub = (b.publishedAt ?? b.createdAt).getTime();
+      if (bPub !== aPub) return bPub - aPub;
+      return b.updatedAt.getTime() - a.updatedAt.getTime();
+    });
+    res.json(rows.map(mapAdminNewsRow));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** POST /news — crear noticia. */
+adminApiRouter.post('/news', async (req, res, next) => {
+  try {
+    const body = req.body as Record<string, unknown>;
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const content = typeof body.content === 'string' ? body.content : typeof body.body === 'string' ? body.body : '';
+    if (!title) {
+      res.status(400).json({ error: 'title requerido' });
+      return;
+    }
+    const { adminStatusToDb, normalizeNewsTopic, parseNewsDate, excerptFromBody, mapAdminNewsRow } = await import('../services/adminNewsMap.js');
+    const status = adminStatusToDb(typeof body.status === 'string' ? body.status : 'draft');
+    const topic = normalizeNewsTopic(body.topic);
+    const publishedAt = parseNewsDate(body.date) ?? new Date();
+    const id = typeof body.id === 'string' && body.id.trim() ? body.id.trim().slice(0, 32) : undefined;
+    const row = await prisma.news.create({
+      data: {
+        ...(id ? { id } : {}),
+        title,
+        body: content,
+        excerpt: excerptFromBody(content),
+        image: typeof body.image === 'string' && body.image.trim() ? body.image.trim() : null,
+        topic,
+        status,
+        publishedAt: status === 'published' ? publishedAt : null,
+      },
+    });
+    await appendAudit(prisma, { action: 'news_create', entityType: 'News', entityId: row.id, afterJson: row as unknown as Record<string, unknown> });
+    res.status(201).json(mapAdminNewsRow(row));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** PUT /news/:id — actualizar noticia. */
+adminApiRouter.put('/news/:id', async (req, res, next) => {
+  try {
+    const id = req.params.id.trim();
+    const body = req.body as Record<string, unknown>;
+    const title = typeof body.title === 'string' ? body.title.trim() : '';
+    const content = typeof body.content === 'string' ? body.content : typeof body.body === 'string' ? body.body : '';
+    if (!title) {
+      res.status(400).json({ error: 'title requerido' });
+      return;
+    }
+    const { adminStatusToDb, normalizeNewsTopic, parseNewsDate, excerptFromBody, mapAdminNewsRow } = await import('../services/adminNewsMap.js');
+    const status = adminStatusToDb(typeof body.status === 'string' ? body.status : 'draft');
+    const topic = normalizeNewsTopic(body.topic);
+    const publishedAt = parseNewsDate(body.date);
+    const prev = await prisma.news.findUnique({ where: { id } });
+    const clearPin = status !== 'published' && prev?.pinnedAt != null;
+    const row = await prisma.news.update({
+      where: { id },
+      data: {
+        title,
+        body: content,
+        excerpt: excerptFromBody(content),
+        image: typeof body.image === 'string' && body.image.trim() ? body.image.trim() : null,
+        topic,
+        status,
+        publishedAt: status === 'published' ? (publishedAt ?? new Date()) : null,
+        ...(clearPin ? { pinnedAt: null } : {}),
+      },
+    });
+    await appendAudit(prisma, { action: 'news_update', entityType: 'News', entityId: row.id, afterJson: row as unknown as Record<string, unknown> });
+    res.json(mapAdminNewsRow(row));
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** DELETE /news/:id */
+adminApiRouter.delete('/news/:id', async (req, res, next) => {
+  try {
+    const id = req.params.id.trim();
+    await prisma.news.delete({ where: { id } });
+    await appendAudit(prisma, { action: 'news_delete', entityType: 'News', entityId: id });
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
+  }
+});
+
+/** PATCH /news/:id/pinned — fijar o desfijar noticia (máx. 3 fijadas). */
+adminApiRouter.patch('/news/:id/pinned', async (req, res, next) => {
+  try {
+    const id = req.params.id.trim();
+    const body = req.body as Record<string, unknown>;
+    const pinned = body.pinned === true;
+    const { MAX_PINNED_NEWS, mapAdminNewsRow } = await import('../services/adminNewsMap.js');
+    const current = await prisma.news.findUnique({ where: { id } });
+    if (!current) {
+      res.status(404).json({ error: 'noticia no encontrada' });
+      return;
+    }
+    if (pinned && current.status !== 'published') {
+      res.status(400).json({ error: 'Solo se pueden fijar noticias activas (publicadas).' });
+      return;
+    }
+    if (pinned && !current.pinnedAt) {
+      const pinnedCount = await prisma.news.count({ where: { pinnedAt: { not: null } } });
+      if (pinnedCount >= MAX_PINNED_NEWS) {
+        res.status(400).json({ error: `Ya hay ${MAX_PINNED_NEWS} noticias fijadas. Desfijá una antes de continuar.` });
+        return;
+      }
+    }
+    const row = await prisma.news.update({
+      where: { id },
+      data: { pinnedAt: pinned ? new Date() : null },
+    });
+    await appendAudit(prisma, {
+      action: pinned ? 'news_pin' : 'news_unpin',
+      entityType: 'News',
+      entityId: row.id,
+      afterJson: row as unknown as Record<string, unknown>,
+    });
+    res.json(mapAdminNewsRow(row));
   } catch (e) {
     next(e);
   }
