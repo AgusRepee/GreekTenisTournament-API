@@ -23,7 +23,14 @@ export type TournamentPhaseMatch = {
   groupResultStatus?: 'played' | 'walkover' | 'retired';
 };
 
-export function koRoundKind(round?: string): 'final' | 'semi' | 'quarter' | null {
+export type RankingMatchRoundKind = 'repechage' | 'octavos' | 'quarter' | 'semi' | 'final';
+
+export function octavosRound(round?: string): boolean {
+  const r = (round ?? '').toLowerCase();
+  return /\boctavos?\b|dieciseis|round\s*(of\s*)?16|\br16\b|\bof\s*16\b|16avos?|8vos?|\beighth\b/i.test(r);
+}
+
+export function koRoundKind(round?: string): RankingMatchRoundKind | null {
   const r = (round ?? '').toLowerCase();
   if (r.includes('cuart')) return 'quarter';
   if (r.includes('semi')) return 'semi';
@@ -37,7 +44,22 @@ export function repechageRound(round?: string): boolean {
 }
 
 export function isKnockoutRound(round?: string): boolean {
-  return koRoundKind(round) != null;
+  return koRoundKind(round) != null || octavosRound(round);
+}
+
+/** Ronda de un partido para puntos de ranking (grupos o KO). */
+export function rankingMatchRoundKind(m: TournamentPhaseMatch): 'group' | RankingMatchRoundKind | null {
+  if (repechageRound(m.round)) return 'repechage';
+  if (octavosRound(m.round)) return 'octavos';
+  const ko = koRoundKind(m.round);
+  if (ko) return ko;
+  if (isGroupPhaseMatch(m)) return 'group';
+  return null;
+}
+
+export function isRankingPointsMatch(m: TournamentPhaseMatch): boolean {
+  const kind = rankingMatchRoundKind(m);
+  return kind != null && kind !== 'group' ? true : isGroupPhaseMatch(m);
 }
 
 function inMatch(playerId: string, m: TournamentPhaseMatch): boolean {
@@ -45,7 +67,7 @@ function inMatch(playerId: string, m: TournamentPhaseMatch): boolean {
 }
 
 export function isGroupPhaseMatch(m: TournamentPhaseMatch): boolean {
-  if (repechageRound(m.round) || koRoundKind(m.round)) return false;
+  if (repechageRound(m.round) || koRoundKind(m.round) || octavosRound(m.round)) return false;
   const g = m.group != null ? String(m.group).trim() : '';
   if (!g || /^interzonal$/i.test(g)) return false;
   const played = m.winnerId != null && String(m.winnerId).length > 0;
@@ -75,18 +97,31 @@ function resolvePlayerReachedPhase(playerId: string, tournamentMatches: Readonly
   }
 
   for (const m of semis) {
-    if (!m.winnerId || !inMatch(playerId, m)) continue;
-    if (m.winnerId !== playerId) return 'semifinalist';
+    if (!inMatch(playerId, m)) continue;
+    // Al cerrarse los cuartos, los participantes de una semi pendiente ya
+    // alcanzaron esta instancia. La final se resuelve antes en esta función,
+    // por lo que un ganador de semifinal recibirá su categoría de finalista.
+    if (!m.winnerId || m.winnerId !== playerId) return 'semifinalist';
   }
 
+  let wonQuarterfinal = false;
   for (const m of quarters) {
     if (!m.winnerId || !inMatch(playerId, m)) continue;
     if (m.winnerId !== playerId) return 'quarterfinalist';
+    wonQuarterfinal = true;
   }
+  // Cubre cuadros donde las semifinales aún no se materializaron al cerrar
+  // cuartos: el ganador igualmente ya es semifinalista.
+  if (wonQuarterfinal) return 'semifinalist';
 
   const inMainKo = [...quarters, ...semis, ...finals].some((m) => inMatch(playerId, m));
-  if (!inMainKo && reps.some((m) => inMatch(playerId, m))) {
-    return 'repechage';
+  if (!inMainKo) {
+    for (const m of reps) {
+      if (!m.winnerId || !inMatch(playerId, m)) continue;
+      // El bonus de repechaje es exclusivamente para quien queda eliminado.
+      // Si gana, espera a que su siguiente instancia quede materializada.
+      if (m.winnerId !== playerId) return 'repechage';
+    }
   }
 
   if (tournamentMatches.some((m) => isGroupPhaseMatch(m) && inMatch(playerId, m))) {

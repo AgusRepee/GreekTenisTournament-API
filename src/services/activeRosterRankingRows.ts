@@ -65,13 +65,44 @@ export async function mergeActiveRosterRankingRows(
     select: {
       id: true,
       name: true,
+      firstName: true,
+      lastName: true,
+      displayName: true,
       category: true,
       profileImage: true,
+      nationality: true,
     },
   });
 
+  const activePlayerIds = players.map((p) => p.id);
+  const [groupPlayers, tournamentLeagues] = await Promise.all([
+    activePlayerIds.length > 0
+      ? prisma.groupPlayer.findMany({
+          where: { playerId: { in: activePlayerIds } },
+          include: { group: { select: { tournamentId: true } } },
+        })
+      : Promise.resolve([]),
+    prisma.tournamentLeague.findMany({ select: { tournamentId: true, leagueNum: true } }),
+  ]);
+
+  const playersById = new Map(players.map((p) => [p.id, p]));
+  const leaguesByTournament = new Map<string, number[]>();
+  for (const tl of tournamentLeagues) {
+    const arr = leaguesByTournament.get(tl.tournamentId) ?? [];
+    arr.push(tl.leagueNum);
+    leaguesByTournament.set(tl.tournamentId, arr);
+  }
+
   for (const player of players) {
     addRosterPlayer(rowsByKey, player, categoryToLeague(player.category), leagueFilter);
+  }
+
+  for (const gp of groupPlayers) {
+    const player = playersById.get(gp.playerId);
+    if (!player) continue;
+    for (const L of leaguesByTournament.get(gp.group.tournamentId) ?? []) {
+      addRosterPlayer(rowsByKey, player, L, leagueFilter);
+    }
   }
 
   return Array.from(rowsByKey.values());

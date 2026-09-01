@@ -1,4 +1,10 @@
+/**
+ * @deprecated Usar `npm run data:seed:novak-l246` (fixture sin resultados).
+ */
 import '../envBootstrap.js';
+console.error('[seedLiga4Nd2026] OBSOLETO: ejecutá npm run data:seed:novak-l246');
+process.exit(1);
+
 import type { MatchResultStatus, MatchStage, Prisma } from '@prisma/client';
 import { prisma } from '../lib/prisma.js';
 import { recalculateRankings } from '../services/recalculateRankings.js';
@@ -131,8 +137,8 @@ async function main() {
         name: 'Novak Djokovic - Liga 4',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-03-15T00:00:00.000Z'),
-        endDate: new Date('2026-05-31T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
         coverImage: 'novaknegro.webp',
         slotsTotal: allPlayers.length,

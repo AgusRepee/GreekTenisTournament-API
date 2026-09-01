@@ -172,7 +172,7 @@ async function main() {
         name: 'Rafael Nadal - Liga 2',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-05-26T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
         endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
         coverImage: 'rafa-naranja.webp',
@@ -195,8 +195,8 @@ async function main() {
 
     const league = await tx.tournamentLeague.upsert({
       where: { tournamentId_leagueNum: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM } },
-      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed' },
-      update: { groupStageStatus: 'confirmed' },
+      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'open' },
+      update: { groupStageStatus: 'open' },
     });
 
     const groupIds = new Map<string, string>();

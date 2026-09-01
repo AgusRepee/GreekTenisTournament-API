@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { LeagueRankingRow, Player } from '@prisma/client';
-import { comparePublicRankingRows, statsJsonSetDiff, type RankingRowWithPlayer } from './rankingPublicSort.js';
+import {
+  comparePublicRankingRows,
+  hasCompetitiveRankingActivity,
+  rankPublicRankingRows,
+  statsJsonSetDiff,
+  type RankingRowWithPlayer,
+} from './rankingPublicSort.js';
 
 function row(
   partial: Partial<LeagueRankingRow> & { player: Pick<Player, 'id' | 'name' | 'category' | 'profileImage'> },
@@ -64,5 +70,27 @@ describe('comparePublicRankingRows', () => {
       statsJson: { setsWon: 12, setsLost: 8 },
     });
     expect(comparePublicRankingRows(a, b)).toBeGreaterThan(0);
+  });
+});
+
+describe('rankPublicRankingRows', () => {
+  const pa = { id: 'a', name: 'Ana', category: 'Primera', profileImage: null };
+  const pb = { id: 'b', name: 'Bea', category: 'Primera', profileImage: null };
+  const pc = { id: 'c', name: 'Caro', category: 'Primera', profileImage: null };
+
+  it('envía al final a quienes no disputaron partidos ni sumaron puntos', () => {
+    const ranked = rankPublicRankingRows([
+      row({ player: pa, points: 0, played: 0 }),
+      row({ player: pb, points: 0, played: 1 }),
+      row({ player: pc, points: 10, played: 2 }),
+    ]);
+
+    expect(ranked.map((r) => r.player.id)).toEqual(['c', 'b', 'a']);
+    expect(ranked.map((r) => r.rank)).toEqual([1, 2, 3]);
+  });
+
+  it('considera activa una fila con PJ aunque no tenga puntos', () => {
+    expect(hasCompetitiveRankingActivity(row({ player: pa, points: 0, played: 1 }))).toBe(true);
+    expect(hasCompetitiveRankingActivity(row({ player: pa, points: 0, played: 0 }))).toBe(false);
   });
 });

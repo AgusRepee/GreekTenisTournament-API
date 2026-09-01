@@ -53,7 +53,7 @@ function validatePartialRegularSet(a: number, b: number): string | null {
   return null;
 }
 
-function parseScoreSegment(segmentRaw: string, options?: { allowPartialRegularSet?: boolean }): ParsedSetLite | null {
+function parseScoreSegment(segmentRaw: string, options?: { allowPartialRegularSet?: boolean; allowExtendedThirdSet?: boolean }): ParsedSetLite | null {
   const segment = segmentRaw.trim().toUpperCase();
   const tbMatch = segment.match(/^(\d+)-(\d+)\((\d+)\)$/);
   if (tbMatch) {
@@ -73,11 +73,19 @@ function parseScoreSegment(segmentRaw: string, options?: { allowPartialRegularSe
     if (err) return null;
     return { gamesA, gamesB, isMatchTiebreak: true };
   }
-  const err = options?.allowPartialRegularSet
-    ? validatePartialRegularSet(gamesA, gamesB)
-    : validateRegularSet(gamesA, gamesB, false);
-  if (err) return null;
-  return { gamesA, gamesB, isMatchTiebreak: false };
+  if (options?.allowPartialRegularSet) {
+    const err = validatePartialRegularSet(gamesA, gamesB);
+    if (err) return null;
+    return { gamesA, gamesB, isMatchTiebreak: false };
+  }
+  const regularErr = validateRegularSet(gamesA, gamesB, false);
+  if (!regularErr) return { gamesA, gamesB, isMatchTiebreak: false };
+  if (options?.allowExtendedThirdSet) {
+    if (gamesA < 0 || gamesB < 0) return null;
+    if (gamesA === gamesB) return null;
+    return { gamesA, gamesB, isMatchTiebreak: false };
+  }
+  return null;
 }
 
 function validateSetSequence(sets: ParsedSetLite[], isRetired: boolean): string | null {
@@ -122,8 +130,11 @@ export function parseKoPlayedScoreDetail(scoreRaw: string, isRetired: boolean): 
   if (rawSegments.length > 3) return { ok: false, error: 'El marcador tiene demasiados segmentos para un partido al mejor de tres.' };
 
   const sets: ParsedSetLite[] = [];
-  for (const seg of rawSegments) {
-    const p = parseScoreSegment(seg, { allowPartialRegularSet: effectiveRetired && sets.length === rawSegments.length - 1 });
+  for (const [index, seg] of rawSegments.entries()) {
+    const p = parseScoreSegment(seg, {
+      allowPartialRegularSet: effectiveRetired && index === rawSegments.length - 1,
+      allowExtendedThirdSet: !effectiveRetired && rawSegments.length === 3 && index === 2,
+    });
     if (!p) return { ok: false, error: `Segmento inválido: "${seg}".` };
     sets.push(p);
   }

@@ -1,5 +1,10 @@
 import type { Match, MatchResult, MatchResultStatus, MatchStage, Prisma } from '@prisma/client';
 import { parseKoPlayedScoreWinner } from './koScoreParse.js';
+import { resolveTournamentEndDateFromFinal } from './novakTournamentDates.js';
+import {
+  repechageIndexFromMatchId,
+  repechageWaitPlayerId,
+} from './koRepechagePlaceholders.js';
 
 const KO_STAGES: MatchStage[] = ['quarterfinal', 'semifinal', 'final', 'repechage'];
 
@@ -64,6 +69,48 @@ export function koAdvanceTarget(
     return { nextMatchId: `${pref}fn-0`, playerField: i === 0 ? 'player1Id' : 'player2Id' };
   }
   return null;
+}
+
+async function applyRepechageWinnerToQuarters(
+  tx: Prisma.TransactionClient,
+  opts: {
+    match: Match;
+    winnerId: string;
+    leagueNumStr?: string;
+  },
+): Promise<void> {
+  const rpIndex = repechageIndexFromMatchId(opts.match.id, opts.match.tournamentId);
+  if (rpIndex == null || !opts.match.tournamentLeagueId) return;
+
+  const waitId = repechageWaitPlayerId(rpIndex);
+  const quarters = await tx.match.findMany({
+    where: {
+      tournamentLeagueId: opts.match.tournamentLeagueId,
+      stage: 'quarterfinal',
+      OR: [{ player1Id: waitId }, { player2Id: waitId }],
+    },
+  });
+
+  for (const qf of quarters) {
+    const data: { player1Id?: string; player2Id?: string } = {};
+    if (qf.player1Id === waitId) data.player1Id = opts.winnerId;
+    if (qf.player2Id === waitId) data.player2Id = opts.winnerId;
+    if (!data.player1Id && !data.player2Id) continue;
+    await tx.match.update({ where: { id: qf.id }, data });
+    await auditKo(tx, {
+      action: 'ko_repechage_winner_placed',
+      entityType: 'Match',
+      entityId: qf.id,
+      tournamentId: opts.match.tournamentId,
+      league: opts.leagueNumStr,
+      payload: {
+        fromRepechageMatchId: opts.match.id,
+        waitSlot: waitId,
+        winnerId: opts.winnerId,
+        updated: data,
+      },
+    });
+  }
 }
 
 /** Partidos KO que pueden verse afectados al editar `matchId` (para bloqueo de dependencias). */
@@ -214,7 +261,31 @@ export async function applyKnockoutAfterMatchResultInTx(
       tournamentLeague: true,
     },
   });
-  if (!match || !match.tournamentLeagueId || !isKnockoutEliminationMatch(match)) return;
+  if (!match || !match.tournamentLeagueId) return;
+
+  // Para cualquier partido vinculado, los IDs de sus lados prevalecen sobre
+  // nombres de jugadores. Esto evita que un homónimo de otra liga quede como
+  // ganador y desvíe estadísticas y puntos de ranking.
+  if (!isKnockoutEliminationMatch(match)) {
+    const outcome = computeKoOutcome(match, opts.payload);
+    if (outcome.kind === 'non_terminal') {
+      await tx.match.update({
+        where: { id: match.id },
+        data: { completed: false, winnerId: null, loserId: null, score: '' },
+      });
+      return;
+    }
+    await tx.match.update({
+      where: { id: match.id },
+      data: {
+        completed: true,
+        winnerId: outcome.winnerId,
+        loserId: outcome.loserId,
+        score: outcome.scoreLine,
+      },
+    });
+    return;
+  }
 
   const leagueNumStr = match.tournamentLeague ? String(match.tournamentLeague.leagueNum) : undefined;
 
@@ -285,6 +356,15 @@ export async function applyKnockoutAfterMatchResultInTx(
     },
   });
 
+  const rpIndex = repechageIndexFromMatchId(match.id, match.tournamentId);
+  if (rpIndex != null) {
+    await applyRepechageWinnerToQuarters(tx, {
+      match,
+      winnerId: preview.winnerId,
+      leagueNumStr,
+    });
+  }
+
   const target = koAdvanceTarget(match.id, match.tournamentId);
   if (target) {
     const next = await tx.match.findUnique({ where: { id: target.nextMatchId } });
@@ -329,11 +409,16 @@ export async function applyKnockoutAfterMatchResultInTx(
   }
 
   if (isFinal) {
+    const endDate =
+      match.scheduledDate ??
+      opts.matchResult.playedAt ??
+      (await resolveTournamentEndDateFromFinal(tx, match.tournamentId));
     await tx.tournament.update({
       where: { id: match.tournamentId },
       data: {
         winnerId: preview.winnerId,
         finalistId: preview.loserId,
+        ...(endDate ? { endDate } : {}),
       },
     });
     if (match.tournamentLeagueId) {

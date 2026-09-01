@@ -6,9 +6,9 @@ const TOURNAMENT_ID = 't-novak-l3';
 const LEAGUE_NUM = 3;
 
 const groups = {
-  A: ['Pusterla P.', 'Santi M.', 'Rusel S.', 'Bocchicchio F.', 'Repecka A.'],
+  A: ['Pusterla P.', 'Santi Mat.', 'Rusel S.', 'Bocchicchio F.', 'Repecka A.'],
   B: ['Marin G.', 'Fernandez B.', 'Casadio M.', 'Aguirre W.', 'Bianco D.'],
-  C: ['Vito C.', 'Santi G.', 'Del Valle G.', 'Ferreres G.', 'Figueroa M.'],
+  C: ['Bauerkamper G.', 'Santi G.', 'Del Valle G.', 'Ferreres G.', 'Figueroa M.'],
 } as const;
 
 type SeedMatch = {
@@ -20,15 +20,15 @@ type SeedMatch = {
 };
 
 const fixtures: SeedMatch[] = [
-  { group: 'A', round: 1, playerA: 'Pusterla P.', playerB: 'Santi M.', ballPlayer: 'Pusterla P.' },
+  { group: 'A', round: 1, playerA: 'Pusterla P.', playerB: 'Santi Mat.', ballPlayer: 'Pusterla P.' },
   { group: 'A', round: 1, playerA: 'Rusel S.', playerB: 'Bocchicchio F.', ballPlayer: 'Rusel S.' },
   { group: 'A', round: 2, playerA: 'Bocchicchio F.', playerB: 'Pusterla P.', ballPlayer: 'Bocchicchio F.' },
   { group: 'A', round: 2, playerA: 'Rusel S.', playerB: 'Repecka A.', ballPlayer: 'Rusel S.' },
   { group: 'A', round: 3, playerA: 'Pusterla P.', playerB: 'Rusel S.', ballPlayer: 'Pusterla P.' },
-  { group: 'A', round: 3, playerA: 'Repecka A.', playerB: 'Santi M.', ballPlayer: 'Repecka A.' },
+  { group: 'A', round: 3, playerA: 'Repecka A.', playerB: 'Santi Mat.', ballPlayer: 'Repecka A.' },
   { group: 'A', round: 4, playerA: 'Repecka A.', playerB: 'Pusterla P.', ballPlayer: 'Repecka A.' },
-  { group: 'A', round: 4, playerA: 'Santi M.', playerB: 'Bocchicchio F.', ballPlayer: 'Santi M.' },
-  { group: 'A', round: 5, playerA: 'Santi M.', playerB: 'Rusel S.', ballPlayer: 'Santi M.' },
+  { group: 'A', round: 4, playerA: 'Santi Mat.', playerB: 'Bocchicchio F.', ballPlayer: 'Santi Mat.' },
+  { group: 'A', round: 5, playerA: 'Santi Mat.', playerB: 'Rusel S.', ballPlayer: 'Santi Mat.' },
   { group: 'A', round: 5, playerA: 'Bocchicchio F.', playerB: 'Repecka A.', ballPlayer: 'Bocchicchio F.' },
   { group: 'B', round: 1, playerA: 'Marin G.', playerB: 'Fernandez B.', ballPlayer: 'Marin G.' },
   { group: 'B', round: 1, playerA: 'Casadio M.', playerB: 'Aguirre W.', ballPlayer: 'Casadio M.' },
@@ -40,13 +40,13 @@ const fixtures: SeedMatch[] = [
   { group: 'B', round: 4, playerA: 'Fernandez B.', playerB: 'Aguirre W.', ballPlayer: 'Fernandez B.' },
   { group: 'B', round: 5, playerA: 'Fernandez B.', playerB: 'Casadio M.', ballPlayer: 'Fernandez B.' },
   { group: 'B', round: 5, playerA: 'Aguirre W.', playerB: 'Bianco D.', ballPlayer: 'Aguirre W.' },
-  { group: 'C', round: 1, playerA: 'Vito C.', playerB: 'Santi G.', ballPlayer: 'Vito C.' },
+  { group: 'C', round: 1, playerA: 'Bauerkamper G.', playerB: 'Santi G.', ballPlayer: 'Bauerkamper G.' },
   { group: 'C', round: 1, playerA: 'Del Valle G.', playerB: 'Ferreres G.', ballPlayer: 'Del Valle G.' },
-  { group: 'C', round: 2, playerA: 'Ferreres G.', playerB: 'Vito C.', ballPlayer: 'Ferreres G.' },
+  { group: 'C', round: 2, playerA: 'Ferreres G.', playerB: 'Bauerkamper G.', ballPlayer: 'Ferreres G.' },
   { group: 'C', round: 2, playerA: 'Del Valle G.', playerB: 'Figueroa M.', ballPlayer: 'Del Valle G.' },
-  { group: 'C', round: 3, playerA: 'Vito C.', playerB: 'Del Valle G.', ballPlayer: 'Vito C.' },
+  { group: 'C', round: 3, playerA: 'Bauerkamper G.', playerB: 'Del Valle G.', ballPlayer: 'Bauerkamper G.' },
   { group: 'C', round: 3, playerA: 'Figueroa M.', playerB: 'Santi G.', ballPlayer: 'Figueroa M.' },
-  { group: 'C', round: 4, playerA: 'Figueroa M.', playerB: 'Vito C.', ballPlayer: 'Figueroa M.' },
+  { group: 'C', round: 4, playerA: 'Figueroa M.', playerB: 'Bauerkamper G.', ballPlayer: 'Figueroa M.' },
   { group: 'C', round: 4, playerA: 'Santi G.', playerB: 'Ferreres G.', ballPlayer: 'Santi G.' },
   { group: 'C', round: 5, playerA: 'Santi G.', playerB: 'Del Valle G.', ballPlayer: 'Santi G.' },
   { group: 'C', round: 5, playerA: 'Ferreres G.', playerB: 'Figueroa M.', ballPlayer: 'Ferreres G.' },
@@ -115,41 +115,41 @@ function ligaDoc(): Prisma.InputJsonValue {
       {
         numero: 1,
         grupos: {
-          A: ['Pusterla P. (P) vs Santi M.', 'Rusel S. (P) vs Bocchicchio F.', 'Libre: Repecka A.'],
+          A: ['Pusterla P. (P) vs Santi Mat.', 'Rusel S. (P) vs Bocchicchio F.', 'Libre: Repecka A.'],
           B: ['Marin G. (P) vs Fernandez B.', 'Casadio M. (P) vs Aguirre W.', 'Libre: Bianco D.'],
-          C: ['Vito C. (P) vs Santi G.', 'Del Valle G. (P) vs Ferreres G.', 'Libre: Figueroa M.'],
+          C: ['Bauerkamper G. (P) vs Santi G.', 'Del Valle G. (P) vs Ferreres G.', 'Libre: Figueroa M.'],
         },
       },
       {
         numero: 2,
         grupos: {
-          A: ['Bocchicchio F. (P) vs Pusterla P.', 'Rusel S. (P) vs Repecka A.', 'Libre: Santi M.'],
+          A: ['Bocchicchio F. (P) vs Pusterla P.', 'Rusel S. (P) vs Repecka A.', 'Libre: Santi Mat.'],
           B: ['Aguirre W. (P) vs Marin G.', 'Casadio M. (P) vs Bianco D.', 'Libre: Fernandez B.'],
-          C: ['Ferreres G. (P) vs Vito C.', 'Del Valle G. (P) vs Figueroa M.', 'Libre: Santi G.'],
+          C: ['Ferreres G. (P) vs Bauerkamper G.', 'Del Valle G. (P) vs Figueroa M.', 'Libre: Santi G.'],
         },
       },
       {
         numero: 3,
         grupos: {
-          A: ['Pusterla P. (P) vs Rusel S.', 'Repecka A. (P) vs Santi M.', 'Libre: Bocchicchio F.'],
+          A: ['Pusterla P. (P) vs Rusel S.', 'Repecka A. (P) vs Santi Mat.', 'Libre: Bocchicchio F.'],
           B: ['Marin G. (P) vs Casadio M.', 'Bianco D. (P) vs Fernandez B.', 'Libre: Aguirre W.'],
-          C: ['Vito C. (P) vs Del Valle G.', 'Figueroa M. (P) vs Santi G.', 'Libre: Ferreres G.'],
+          C: ['Bauerkamper G. (P) vs Del Valle G.', 'Figueroa M. (P) vs Santi G.', 'Libre: Ferreres G.'],
         },
       },
       {
         numero: 4,
         grupos: {
-          A: ['Repecka A. (P) vs Pusterla P.', 'Santi M. (P) vs Bocchicchio F.', 'Libre: Rusel S.'],
+          A: ['Repecka A. (P) vs Pusterla P.', 'Santi Mat. (P) vs Bocchicchio F.', 'Libre: Rusel S.'],
           B: ['Bianco D. (P) vs Marin G.', 'Fernandez B. (P) vs Aguirre W.', 'Libre: Casadio M.'],
-          C: ['Figueroa M. (P) vs Vito C.', 'Santi G. (P) vs Ferreres G.', 'Libre: Del Valle G.'],
+          C: ['Figueroa M. (P) vs Bauerkamper G.', 'Santi G. (P) vs Ferreres G.', 'Libre: Del Valle G.'],
         },
       },
       {
         numero: 5,
         grupos: {
-          A: ['Santi M. (P) vs Rusel S.', 'Bocchicchio F. (P) vs Repecka A.', 'Libre: Pusterla P.'],
+          A: ['Santi Mat. (P) vs Rusel S.', 'Bocchicchio F. (P) vs Repecka A.', 'Libre: Pusterla P.'],
           B: ['Fernandez B. (P) vs Casadio M.', 'Aguirre W. (P) vs Bianco D.', 'Libre: Marin G.'],
-          C: ['Santi G. (P) vs Del Valle G.', 'Ferreres G. (P) vs Figueroa M.', 'Libre: Vito C.'],
+          C: ['Santi G. (P) vs Del Valle G.', 'Ferreres G. (P) vs Figueroa M.', 'Libre: Bauerkamper G.'],
         },
       },
     ],
@@ -172,10 +172,10 @@ async function main() {
         name: 'Novak Djokovic - Liga 3',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-04-01T00:00:00.000Z'),
-        endDate: new Date('2026-06-30T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
-        coverImage: 'novaknegro.webp',
+        coverImage: 'novakazul.webp',
         slotsTotal: allPlayers.length,
         slotsTaken: allPlayers.length,
         ligaDoc: ligaDoc(),
@@ -186,7 +186,7 @@ async function main() {
         tournamentType: 'greek500',
         status: 'upcoming',
         location: 'Club de Tenis',
-        coverImage: 'novaknegro.webp',
+        coverImage: 'novakazul.webp',
         slotsTotal: allPlayers.length,
         slotsTaken: allPlayers.length,
         ligaDoc: ligaDoc(),
@@ -195,8 +195,8 @@ async function main() {
 
     const league = await tx.tournamentLeague.upsert({
       where: { tournamentId_leagueNum: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM } },
-      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed' },
-      update: { groupStageStatus: 'confirmed' },
+      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'open' },
+      update: { groupStageStatus: 'open' },
     });
 
     const groupIds = new Map<string, string>();
@@ -217,15 +217,18 @@ async function main() {
       }
     }
 
+    await tx.matchResult.deleteMany({ where: { tournamentId: TOURNAMENT_ID } });
+    await tx.tournamentScheduleEntry.deleteMany({ where: { tournamentId: TOURNAMENT_ID } });
+    await tx.match.deleteMany({ where: { tournamentId: TOURNAMENT_ID } });
+
     for (const [index, row] of fixtures.entries()) {
       const id = matchId(index);
       const p1 = playerId(row.playerA);
       const p2 = playerId(row.playerB);
       const note = `Jugador con pelotas: ${row.ballPlayer}.`;
 
-      await tx.match.upsert({
-        where: { id },
-        create: {
+      await tx.match.create({
+        data: {
           id,
           tournamentId: TOURNAMENT_ID,
           tournamentLeagueId: league.id,
@@ -242,26 +245,10 @@ async function main() {
           scheduledTime: null,
           completed: false,
         },
-        update: {
-          tournamentLeagueId: league.id,
-          groupId: groupIds.get(row.group) ?? null,
-          stage: stageFor(),
-          roundLabel: `Grupo ${row.group} - Fecha ${row.round}`,
-          player1Id: p1,
-          player2Id: p2,
-          winnerId: null,
-          loserId: null,
-          score: '',
-          scheduleStatus: 'unscheduled',
-          scheduledDate: null,
-          scheduledTime: null,
-          completed: false,
-        },
       });
 
-      await tx.tournamentScheduleEntry.upsert({
-        where: { dedupeKey: dedupeKey(row) },
-        create: {
+      await tx.tournamentScheduleEntry.create({
+        data: {
           dedupeKey: dedupeKey(row),
           tournamentId: TOURNAMENT_ID,
           leagueNum: LEAGUE_NUM,
@@ -270,16 +257,8 @@ async function main() {
           time: null,
           note,
         },
-        update: {
-          scheduleStatus: 'unscheduled',
-          date: null,
-          time: null,
-          note,
-        },
       });
     }
-
-    await tx.matchResult.deleteMany({ where: { tournamentId: TOURNAMENT_ID } });
   });
 
   console.log(`Novak Djokovic - Liga 3: ${fixtures.length} partidos programados sin resultados.`);

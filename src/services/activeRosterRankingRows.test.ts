@@ -9,6 +9,8 @@ describe('mergeActiveRosterRankingRows', () => {
           { id: 'p-l1-demo', name: 'Demo A.', category: 'Primera', profileImage: null },
         ],
       },
+      groupPlayer: { findMany: async () => [] },
+      tournamentLeague: { findMany: async () => [] },
     };
 
     const rows = await mergeActiveRosterRankingRows(prisma as never, [], null);
@@ -46,11 +48,41 @@ describe('mergeActiveRosterRankingRows', () => {
           { id: 'p-l2-komesu-m', name: 'Komesu M.', category: 'Segunda', profileImage: null },
         ],
       },
+      groupPlayer: { findMany: async () => [] },
+      tournamentLeague: { findMany: async () => [] },
     };
 
     const rows = await mergeActiveRosterRankingRows(prisma as never, [existing], null);
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id: 'row-real', playerId: 'p-l2-komesu-m', league: 2, points: 180 });
+  });
+
+  it('agrega fila en liga superior si el jugador está en plantel de ese torneo (ascenso)', async () => {
+    const prisma = {
+      player: {
+        findMany: async () => [
+          { id: 'p-l6', name: 'Cellilli F.', category: 'Sexta', profileImage: null },
+        ],
+      },
+      groupPlayer: {
+        findMany: async () => [
+          { playerId: 'p-l6', group: { tournamentId: 't-novak-l6' } },
+          { playerId: 'p-l6', group: { tournamentId: 't-novak-l5' } },
+        ],
+      },
+      tournamentLeague: {
+        findMany: async () => [
+          { tournamentId: 't-novak-l6', leagueNum: 6 },
+          { tournamentId: 't-novak-l5', leagueNum: 5 },
+        ],
+      },
+    };
+
+    const rows = await mergeActiveRosterRankingRows(prisma as never, [], null);
+    const leagues = rows.map((r) => r.league).sort();
+
+    expect(leagues).toEqual([5, 6]);
+    expect(rows.every((r) => r.playerId === 'p-l6')).toBe(true);
   });
 });

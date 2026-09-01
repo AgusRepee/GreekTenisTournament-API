@@ -1,6 +1,8 @@
 import type { Match, PrismaClient, Tournament } from '@prisma/client';
 import { categoryToLeague } from './recalculateRankings.js';
+import { resolvePlayerCurrentLeagueById } from './playerCurrentLeague.js';
 import { loadPhaseMatchContext, phaseKey } from './phaseMatchIndex.js';
+import { playerListedInTournamentGroupRoster } from './leagueRankingMembership.js';
 import {
   mergePointsTable,
   parseRankingPointsFromRulesJson,
@@ -9,8 +11,13 @@ import {
   effectivePrismaTournamentCatalogType,
   type TournamentPhase,
 } from './rankingPointsConfig.js';
-import { parseKoPlayedScoreDetail } from './koScoreParse.js';
 import { comparePublicRankingRows, type RankingRowWithPlayer } from './rankingPublicSort.js';
+import {
+  aggregateDedupedPlayerCareerStats,
+  buildNameToId,
+  loadRecentMatchesForPlayerProfile,
+} from './profileMatchFeed.js';
+import { computeBestHistoricalLeagueRank } from './computeBestHistoricalLeagueRank.js';
 
 function phaseLabelEs(phase: TournamentPhase): string {
   switch (phase) {
@@ -60,48 +67,6 @@ function matchSortTimeMs(m: Match & { tournament?: Pick<Tournament, 'endDate'> |
   return m.updatedAt.getTime();
 }
 
-function calendarYearFromMatch(m: Match & { tournament?: Pick<Tournament, 'endDate' | 'startDate'> | null }): number {
-  const t = matchSortTimeMs(m);
-  return new Date(t).getFullYear();
-}
-
-function stageLabelForRecent(stage: string): string {
-  switch (stage) {
-    case 'group':
-      return 'Grupos';
-    case 'interzonal':
-      return 'Interzonal';
-    case 'quarterfinal':
-      return 'Cuartos';
-    case 'semifinal':
-      return 'Semifinales';
-    case 'final':
-      return 'Final';
-    case 'repechage':
-      return 'Repechaje';
-    default:
-      return 'Partido';
-  }
-}
-
-async function computeBestHistoricalLeagueRank(prisma: PrismaClient, playerId: string): Promise<number | null> {
-  const rows = await prisma.leagueRankingRow.findMany({
-    include: { player: { select: { id: true, name: true, category: true, profileImage: true } } },
-  });
-  const typed = rows as RankingRowWithPlayer[];
-  let best: number | null = null;
-  for (let L = 1; L <= 6; L++) {
-    const list = typed.filter((r) => r.league === L).sort(comparePublicRankingRows);
-    const idx = list.findIndex((r) => r.playerId === playerId);
-    if (idx < 0) continue;
-    const row = list[idx]!;
-    if (row.played <= 0 && row.wins <= 0) continue;
-    const pos = idx + 1;
-    best = best === null ? pos : Math.min(best, pos);
-  }
-  return best;
-}
-
 type ProfileRankings = {
   globalPosition: number | null;
   globalTotal: number;
@@ -112,15 +77,14 @@ type ProfileRankings = {
 
 function buildProfileRankingsFromDb(
   playerId: string,
-  playerCategory: string,
+  primaryLeague: number,
   allPlayers: { id: string; name: string; category: string }[],
   rankingRows: RankingRowWithPlayer[],
 ): ProfileRankings | null {
-  const primaryLeague = categoryToLeague(playerCategory);
   const pointsForPlayer = (pid: string): { points: number; setsWon: number; setsLost: number } => {
     const p = allPlayers.find((x) => x.id === pid);
     if (!p) return { points: 0, setsWon: 0, setsLost: 0 };
-    const L = categoryToLeague(p.category);
+    const L = pid === playerId ? primaryLeague : categoryToLeague(p.category);
     const row = rankingRows.find((r) => r.playerId === pid && r.league === L);
     const sj = row?.statsJson as Record<string, unknown> | null | undefined;
     const sw = typeof sj?.setsWon === 'number' ? sj.setsWon : 0;
@@ -215,6 +179,8 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
 
   if (!player) return null;
 
+  const currentLeague = await resolvePlayerCurrentLeagueById(prisma, player);
+
   const allRankingRows = allRankingRowsRaw as RankingRowWithPlayer[];
   const rosterIds = new Set(ctx.players.map((p) => p.id));
   const allPlayers = ctx.players.map((p) => ({ id: p.id, name: p.name, category: p.category }));
@@ -222,7 +188,8 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
     allPlayers.push({ id: player.id, name: player.name, category: player.category });
   }
 
-  const primaryLeague = categoryToLeague(player.category);
+  const primaryLeague = currentLeague;
+  const rosterCategoryLeague = categoryToLeague(player.category);
   const rankings = allRankingRows.filter((r) => r.playerId === playerId).sort((a, b) => a.league - b.league);
 
   const rankingsByLeague: Record<string, (typeof rankings)[0] | null> = {};
@@ -235,10 +202,40 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
   const primaryRank = rankings.find((r) => r.league === primaryLeague) ?? null;
   const primaryPoints = primaryRank?.points ?? 0;
 
-  const profileRankings = buildProfileRankingsFromDb(player.id, player.category, allPlayers, allRankingRows);
+  const profileRankings = buildProfileRankingsFromDb(player.id, currentLeague, allPlayers, allRankingRows);
 
-  const { phaseMap, tournaments, tlByTournamentLeague } = ctx;
+  const activeLeagueRankings: Array<{
+    league: number;
+    position: number | null;
+    total: number;
+    points: number;
+    played: number;
+  }> = [];
+  for (let L = 1; L <= 6; L++) {
+    const row = rankings.find((r) => r.league === L);
+    if (!row || (row.points <= 0 && row.played <= 0 && row.wins <= 0)) continue;
+    const leagueList = allRankingRows.filter((r) => r.league === L).sort(comparePublicRankingRows);
+    const idx = leagueList.findIndex((r) => r.playerId === playerId);
+    activeLeagueRankings.push({
+      league: L,
+      position: idx >= 0 ? idx + 1 : null,
+      total: leagueList.length,
+      points: row.points,
+      played: row.played,
+    });
+  }
+
+  const { phaseMap, tournaments, tlByTournamentLeague, groupRosterByTournament } = ctx;
   const finishedTournaments = tournaments.filter((t) => t.status === 'finished');
+
+  const rosterTournamentIds = (year?: number): Set<string> => {
+    const ids = new Set<string>();
+    for (const t of tournaments) {
+      if (year != null && t.startDate.getFullYear() !== year && t.endDate.getFullYear() !== year) continue;
+      if (playerListedInTournamentGroupRoster(groupRosterByTournament, t.id, playerId)) ids.add(t.id);
+    }
+    return ids;
+  };
 
   const participation: Array<{
     tournamentId: string;
@@ -327,36 +324,33 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
   }
 
   const seasonYear = new Date().getFullYear();
-  const seasonMatches = completedWithWinner.filter((m) => calendarYearFromMatch(m) === seasonYear);
 
-  function addMatchAgg(list: typeof seasonMatches) {
-    let pj = 0;
-    let pg = 0;
-    let pp = 0;
-    let sw = 0;
-    let sl = 0;
-    for (const m of list) {
-      pj += 1;
-      const won = m.winnerId === playerId;
-      if (won) pg += 1;
-      else pp += 1;
-      const line = (m.score ?? '').trim();
-      if (line) {
-        const det = parseKoPlayedScoreDetail(line, false);
-        if (det.ok) {
-          const swSelf = m.player1Id === playerId ? det.setsWonA : det.setsWonB;
-          const slSelf = m.player1Id === playerId ? det.setsWonB : det.setsWonA;
-          sw += swSelf;
-          sl += slSelf;
-        }
-      }
-    }
-    const setDiff = sw - sl;
-    const winRate = pj > 0 ? pg / pj : 0;
-    return { totalMatchesPlayed: pj, totalWins: pg, totalLosses: pp, setsWon: sw, setsLost: sl, setDifference: setDiff, winRate };
-  }
-
-  const seasonCore = addMatchAgg(seasonMatches);
+  const playersForMatching = rosterIds.has(player.id)
+    ? ctx.players
+    : [
+        ...ctx.players,
+        { id: player.id, name: player.name, displayName: player.displayName, category: player.category },
+      ];
+  const playerNameAliases = [player.name, player.displayName].filter((x): x is string => !!x?.trim());
+  const nameToId = buildNameToId(playersForMatching as Parameters<typeof buildNameToId>[0]);
+  const allMatchResults = await prisma.matchResult.findMany({
+    where: { status: { in: ['played', 'walkover', 'retired'] } },
+  });
+  const seasonCore = aggregateDedupedPlayerCareerStats(
+    allMatchResults,
+    completedWithWinner,
+    playerId,
+    playerNameAliases,
+    nameToId,
+    seasonYear,
+  );
+  const careerMatchCore = aggregateDedupedPlayerCareerStats(
+    allMatchResults,
+    completedWithWinner,
+    playerId,
+    playerNameAliases,
+    nameToId,
+  );
   let seasonTitles = 0;
   let finalsSeasonReached = 0;
   let finalsSeasonWon = 0;
@@ -387,7 +381,10 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
     playerId,
     playerName: player.name,
     ...seasonCore,
-    tournamentsPlayed: participation.filter((p) => new Date(p.endDate).getFullYear() === seasonYear).length,
+    tournamentsPlayed: Math.max(
+      participation.filter((p) => new Date(p.endDate).getFullYear() === seasonYear).length,
+      rosterTournamentIds(seasonYear).size,
+    ),
     tournamentsWon: seasonTitles,
     bestHistoricalRanking: null as number | null,
     currentLeague: primaryLeague,
@@ -396,17 +393,22 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
   const careerStats = {
     playerId,
     playerName: player.name,
-    totalMatchesPlayed: careerAgg.played,
-    totalWins: careerAgg.wins,
-    totalLosses: careerAgg.losses,
-    setsWon: careerAgg.setsWon,
-    setsLost: careerAgg.setsLost,
-    setDifference: careerAgg.setDiff,
-    tournamentsPlayed: Math.max(careerAgg.tournamentsPlayed, distinctTournamentIds.size),
+    totalMatchesPlayed: careerMatchCore.totalMatchesPlayed,
+    totalWins: careerMatchCore.totalWins,
+    totalLosses: careerMatchCore.totalLosses,
+    setsWon: careerMatchCore.setsWon,
+    setsLost: careerMatchCore.setsLost,
+    setDifference: careerMatchCore.setDifference,
+    tournamentsPlayed: Math.max(
+      careerAgg.tournamentsPlayed,
+      distinctTournamentIds.size,
+      rosterTournamentIds().size,
+    ),
     tournamentsWon: careerAgg.titles,
-    bestHistoricalRanking,
+    bestHistoricalRanking: bestHistoricalRanking?.position ?? null,
+    bestHistoricalRankingLeague: bestHistoricalRanking?.league ?? null,
     currentLeague: primaryLeague,
-    winRate: careerAgg.winRate,
+    winRate: careerMatchCore.winRate,
   };
 
   const gaugeMatchStages = { group: 0, interzonal: 0, quarterfinal: 0, semifinal: 0, final: 0, other: 0 };
@@ -450,52 +452,24 @@ export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: s
     role: t.winnerId === playerId ? ('Campeón' as const) : ('Finalista' as const),
   }));
 
-  const recentMatchesDb = await prisma.match.findMany({
-    where: {
-      completed: true,
-      OR: [{ player1Id: playerId }, { player2Id: playerId }],
-    },
-    take: 40,
-    include: {
-      player1: { select: { id: true, name: true } },
-      player2: { select: { id: true, name: true } },
-      winner: { select: { id: true, name: true } },
-      loser: { select: { id: true, name: true } },
-      tournament: { select: { id: true, name: true, slug: true, endDate: true } },
-    },
-  });
-  recentMatchesDb.sort((a, b) => matchSortTimeMs(b) - matchSortTimeMs(a));
-  const recentMatchesTop = recentMatchesDb.slice(0, 15);
-
-  const recentMatches = recentMatchesTop.map((m) => {
-    const dateIso = m.scheduledDate
-      ? m.scheduledDate.toISOString().slice(0, 10)
-      : m.tournament?.endDate
-        ? m.tournament.endDate.toISOString().slice(0, 10)
-        : undefined;
-    const phaseLabel = `${m.tournament?.name ?? 'Torneo'} · ${stageLabelForRecent(m.stage)}`;
-    return {
-      id: m.id,
-      score: m.score ?? '',
-      stage: m.stage,
-      scheduledDate: m.scheduledDate ? m.scheduledDate.toISOString() : null,
-      dateIso,
-      phaseLabel,
-      player1: m.player1,
-      player2: m.player2,
-      winner: m.winner,
-      tournament: m.tournament ? { id: m.tournament.id, name: m.tournament.name, slug: m.tournament.slug } : null,
-    };
-  });
+  const recentMatchesDb = await loadRecentMatchesForPlayerProfile(
+    prisma,
+    playerId,
+    playerNameAliases,
+    playersForMatching as Parameters<typeof buildNameToId>[0],
+  );
+  const recentMatches = recentMatchesDb;
 
   return {
-    player,
+    player: { ...player, currentLeague, rosterCategoryLeague },
     primaryLeague,
+    rosterCategoryLeague,
     primaryRanking: primaryRank,
     rankingsByLeague,
     profileRankings,
+    activeLeagueRankings,
     recentMatches,
-    tournamentsPlayedCount: tidFromMatches.size,
+    tournamentsPlayedCount: Math.max(tidFromMatches.size, rosterTournamentIds().size),
     tournamentHistory: histMapped,
     aggregate: {
       pointsSum: careerAgg.pointsSum,

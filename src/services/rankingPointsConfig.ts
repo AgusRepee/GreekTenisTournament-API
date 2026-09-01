@@ -4,7 +4,7 @@
  */
 
 import type { PlayerReachedPhase, TournamentPhaseMatch } from './rankingPhase.js';
-import { getPlayerReachedPhase, isGroupPhaseMatch } from './rankingPhase.js';
+import { getPlayerReachedPhase, isGroupPhaseMatch, isRankingPointsMatch } from './rankingPhase.js';
 
 export type RankingPointsStageReached = {
   champion: number;
@@ -41,11 +41,11 @@ export const DEFAULT_RANKING_POINTS: RankingPointsConfig = {
     semifinalist: 200,
     quarterfinalist: 100,
     repechageLoser: 50,
-    groupStage: 25,
+    groupStage: 0,
   },
   groupMatches: {
     win: 25,
-    loss: 5,
+    loss: 10,
     walkoverWin: 15,
     walkoverLoss: 0,
   },
@@ -190,6 +190,7 @@ export function pointsForPhase(phase: TournamentPhase, stage: RankingPointsStage
   }
 }
 
+/** Puntos por partido de fase de grupos (sin eliminatoria). */
 export function groupMatchRankingPointsForPlayer(
   playerId: string,
   phaseMatches: TournamentPhaseMatch[],
@@ -198,6 +199,7 @@ export function groupMatchRankingPointsForPlayer(
   let pts = 0;
   for (const m of phaseMatches) {
     if (!isGroupPhaseMatch(m)) continue;
+    if (!isRankingPointsMatch(m)) continue;
     if (!inMatch(playerId, m)) continue;
     const w = m.winnerId;
     if (w == null || String(w).trim() === '') continue;
@@ -210,6 +212,15 @@ export function groupMatchRankingPointsForPlayer(
     }
   }
   return pts;
+}
+
+/** Alias histórico: solo fase de grupos (no suma repechaje/KO). */
+export function matchRankingPointsForPlayer(
+  playerId: string,
+  phaseMatches: TournamentPhaseMatch[],
+  gm: RankingPointsGroupMatches,
+): number {
+  return groupMatchRankingPointsForPlayer(playerId, phaseMatches, gm);
 }
 
 export function tournamentPointsFromPhaseMatches(
@@ -226,8 +237,7 @@ export function tournamentPointsFromPhaseMatches(
     phase === 'finalist' ||
     phase === 'semifinalist' ||
     phase === 'quarterfinalist' ||
-    phase === 'repechage' ||
-    phase === 'group_participant';
+    phase === 'repechage';
 
   const stagePts = stageEligible ? pointsForPhase(phase, pointsTable.stageReached) : 0;
   const points = stagePts + groupPts;
@@ -261,7 +271,7 @@ export const DEFAULT_RANKING_POINTS_MASTERS_1000: RankingPointsConfig = {
     semifinalist: 400,
     quarterfinalist: 200,
     repechageLoser: 100,
-    groupStage: 50,
+    groupStage: 0,
   },
   groupMatches: {
     win: 50,

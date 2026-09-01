@@ -21,7 +21,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
     'Garassi A.',
     'Rothkel M.',
     'Araujo J.',
-    'Zanella H.',
+    'Pitera F.',
     'Duarte D.',
     'Gaudina A.',
     'Córdoba D.',
@@ -55,7 +55,8 @@ const ROSTER_LEAGUES: RosterLeague[] = [
     leagueNum: 3,
     category: 'Tercera',
     players: [
-    'Santi M.',
+    'Santi Mat.',
+    'Santi Mar.',
     'Rusel S.',
     'Repecka A.',
     'Pusterla P.',
@@ -69,7 +70,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
     'Figueroa M.',
     'Del Valle G.',
     'Ferreres G.',
-    'Vito C.',
+    'Bauerkamper G.',
     'Komesu F.',
     ],
   },
@@ -114,7 +115,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
   },
   {
     leagueNum: 6,
-    category: 'Quinta B',
+    category: 'Sexta',
     players: [
       'Cellilli F.',
       'Amezague J.',
@@ -125,6 +126,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
       'Antuña A.',
       'Ferrarotti E.',
       'Fratini M.',
+      'Marceca M.',
     ],
   },
 ];
@@ -132,7 +134,7 @@ const ROSTER_LEAGUES: RosterLeague[] = [
 const REMOVED_ROSTER_PLAYERS = [
   { category: 'Tercera', name: 'Volpe S.' },
   { category: 'Cuarta', name: 'Fernandez B.' },
-  { category: 'Quinta B', name: 'Oshiro E.' },
+  { category: 'Sexta', name: 'Oshiro E.' },
 ] as const;
 
 function normalizeName(name: string): string {

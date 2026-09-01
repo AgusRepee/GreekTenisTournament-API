@@ -90,16 +90,21 @@ authAdminRouter.post('/login', async (req, res, next) => {
 
   try {
     const body = req.body as AdminLoginBody;
-    const email = normalizeEmail(body?.email ?? body?.username);
+    const loginId = (body?.email ?? body?.username ?? '').trim();
     const password = body?.password ?? '';
-    if (!email || !password) {
+    if (!loginId || !password) {
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
 
     const adminCount = await prisma.adminUser.count();
     if (adminCount > 0) {
-      const admin = await prisma.adminUser.findUnique({ where: { email } });
+      const normalizedEmail = normalizeEmail(loginId);
+      const admin = await prisma.adminUser.findFirst({
+        where: {
+          OR: [{ email: normalizedEmail }, { username: loginId }, { username: normalizedEmail }],
+        },
+      });
       if (!admin?.isActive) {
         res.status(401).json({ error: 'Credenciales inválidas' });
         return;
@@ -110,7 +115,12 @@ authAdminRouter.post('/login', async (req, res, next) => {
         return;
       }
       const token = signAdminToken(
-        { sub: admin.id, role: admin.role, email: admin.email ?? email, username: admin.username },
+        {
+          sub: admin.id,
+          role: admin.role,
+          email: admin.email ?? normalizedEmail,
+          username: admin.username,
+        },
         secret,
       );
       res.json({ ...token, tokenType: 'Bearer' });
@@ -119,15 +129,22 @@ authAdminRouter.post('/login', async (req, res, next) => {
 
     const fallbackPassword = process.env.ADMIN_PASSWORD?.trim() ?? '';
     const fallbackEmail = normalizeEmail(process.env.ADMIN_SEED_EMAIL) || 'agustinrepecka@gmail.com';
+    const fallbackUsername = process.env.ADMIN_SEED_USERNAME?.trim() || 'admin';
     if (!fallbackPassword) {
       res.status(503).json({ error: 'ADMIN_PASSWORD no configurado y no existen usuarios admin' });
       return;
     }
-    if (email !== fallbackEmail || password !== fallbackPassword) {
+    const loginOk =
+      password === fallbackPassword &&
+      (normalizeEmail(loginId) === fallbackEmail || loginId === fallbackUsername);
+    if (!loginOk) {
       res.status(401).json({ error: 'Credenciales inválidas' });
       return;
     }
-    const token = signAdminToken({ sub: 'env-admin', role: 'admin', email: fallbackEmail, username: 'admin' }, secret);
+    const token = signAdminToken(
+      { sub: 'env-admin', role: 'admin', email: fallbackEmail, username: fallbackUsername },
+      secret,
+    );
     res.json({ ...token, tokenType: 'Bearer' });
   } catch (err) {
     next(err);

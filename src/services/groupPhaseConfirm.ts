@@ -8,13 +8,21 @@ export type ConfirmGroupPayload = {
   played?: number;
 };
 
+/** Solo los resultados asociados a un grupo bloquean el cierre de esa fase. */
+export function isPendingGroupResult(groupKey: string | null): boolean {
+  const key = groupKey?.trim() ?? '';
+  return key.length > 0 && !/^KO-/i.test(key);
+}
+
 export async function countPendingMatchResultsForTournament(
   prisma: PrismaClient,
   tournamentId: string,
 ): Promise<number> {
-  return prisma.matchResult.count({
+  const pending = await prisma.matchResult.findMany({
     where: { tournamentId, status: 'pending' },
+    select: { groupKey: true },
   });
+  return pending.filter((row) => isPendingGroupResult(row.groupKey)).length;
 }
 
 export async function validateGroupPhaseConfirm(

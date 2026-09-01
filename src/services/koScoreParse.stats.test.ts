@@ -16,4 +16,15 @@ describe('parseKoPlayedScoreDetail', () => {
     const r = parseKoPlayedScoreDetail('', false);
     expect(r.ok).toBe(false);
   });
+
+  it('super tie-break del tercer set suma cada punto como game (ej. 15-13)', () => {
+    const r = parseKoPlayedScoreDetail('2-6 6-3 15-13', false);
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.winner).toBe('A');
+    expect(r.setsWonA).toBe(2);
+    expect(r.setsWonB).toBe(1);
+    expect(r.gamesWonA).toBe(23);
+    expect(r.gamesWonB).toBe(22);
+  });
 });

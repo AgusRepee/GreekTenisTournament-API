@@ -1,0 +1,130 @@
+{
+    "torneo": "Novak Djokovic",
+    "liga": 5,
+    "grupos": {
+      "A": [
+        "Rios J.",
+        "Peralta G.",
+        "Oviedo M.",
+        "Ali M.",
+        "Manrique E."
+      ],
+      "B": [
+        "Gonzalez Dias F.",
+        "Chantada S.",
+        "Sola M.",
+        "Cirigliano D.",
+        "Cordoba A."
+      ],
+      "C": [
+        "Cordoba G.",
+        "Gonzalez Dias C.",
+        "Tellechea L.",
+        "Vila E.",
+        "Gimenez F."
+      ]
+    },
+    "fechas": [
+      {
+        "numero": 1,
+        "grupos": {
+          "A": [
+            "Rios J. (P) vs Ali M.",
+            "Peralta G. (P) vs Oviedo M.",
+            "Libre: Manrique E."
+          ],
+          "B": [
+            "Cirigliano D. (P) vs Cordoba A.",
+            "Gonzalez Dias F. (P) vs Chantada S.",
+            "Libre: Sola M."
+          ],
+          "C": [
+            "Tellechea L. (P) vs Gonzalez Dias C.",
+            "Cordoba G. (P) vs Gimenez F.",
+            "Libre: Vila E."
+          ]
+        }
+      },
+      {
+        "numero": 2,
+        "grupos": {
+          "A": [
+            "Oviedo M. (P) vs Rios J.",
+            "Peralta G. (P) vs Manrique E.",
+            "Libre: Ali M."
+          ],
+          "B": [
+            "Chantada S. (P) vs Cirigliano D.",
+            "Gonzalez Dias F. (P) vs Sola M.",
+            "Libre: Cordoba A."
+          ],
+          "C": [
+            "Gimenez F. (P) vs Tellechea L.",
+            "Cordoba G. (P) vs Vila E.",
+            "Libre: Gonzalez Dias C."
+          ]
+        }
+      },
+      {
+        "numero": 3,
+        "grupos": {
+          "A": [
+            "Rios J. (P) vs Peralta G.",
+            "Manrique E. (P) vs Ali M.",
+            "Libre: Oviedo M."
+          ],
+          "B": [
+            "Cirigliano D. (P) vs Gonzalez Dias F.",
+            "Sola M. (P) vs Cordoba A.",
+            "Libre: Chantada S."
+          ],
+          "C": [
+            "Tellechea L. (P) vs Cordoba G.",
+            "Vila E. (P) vs Gonzalez Dias C.",
+            "Libre: Gimenez F."
+          ]
+        }
+      },
+      {
+        "numero": 4,
+        "grupos": {
+          "A": [
+            "Manrique E. (P) vs Rios J.",
+            "Ali M. (P) vs Oviedo M.",
+            "Libre: Peralta G."
+          ],
+          "B": [
+            "Sola M. (P) vs Cirigliano D.",
+            "Cordoba A. (P) vs Chantada S.",
+            "Libre: Gonzalez Dias F."
+          ],
+          "C": [
+            "Vila E. (P) vs Tellechea L.",
+            "Gonzalez Dias C. (P) vs Gimenez F.",
+            "Libre: Cordoba G."
+          ]
+        }
+      },
+      {
+        "numero": 5,
+        "grupos": {
+          "A": [
+            "Ali M. (P) vs Peralta G.",
+            "Oviedo M. (P) vs Manrique E.",
+            "Libre: Rios J."
+          ],
+          "B": [
+            "Cordoba A. (P) vs Gonzalez Dias F.",
+            "Chantada S. (P) vs Sola M.",
+            "Libre: Cirigliano D."
+          ],
+          "C": [
+            "Gonzalez Dias C. (P) vs Cordoba G.",
+            "Gimenez F. (P) vs Vila E.",
+            "Libre: Tellechea L."
+          ]
+        }
+      }
+    ],
+    "nota": "(P): Jugador asignado para llevar pelotas en ese partido."
+  }

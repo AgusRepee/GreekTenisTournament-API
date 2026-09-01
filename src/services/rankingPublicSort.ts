@@ -23,3 +23,22 @@ export function comparePublicRankingRows(a: RankingRowWithPlayer, b: RankingRowW
   if (sd !== 0) return sd;
   return a.player.name.localeCompare(b.player.name, 'es');
 }
+
+/** Un jugador sin partidos ni puntos queda detrás de cualquier jugador con actividad competitiva. */
+export function hasCompetitiveRankingActivity(row: RankingRowWithPlayer): boolean {
+  return row.played > 0 || row.points > 0 || row.titles > 0 || row.finals > 0;
+}
+
+/** Mantiene el orden competitivo y agrupa al final a quienes aún no disputaron torneos. */
+export function rankPublicRankingRows(rows: RankingRowWithPlayer[]): Array<RankingRowWithPlayer & { rank: number }> {
+  const active: RankingRowWithPlayer[] = [];
+  const inactive: RankingRowWithPlayer[] = [];
+
+  for (const row of rows) {
+    (hasCompetitiveRankingActivity(row) ? active : inactive).push(row);
+  }
+
+  active.sort(comparePublicRankingRows);
+  inactive.sort(comparePublicRankingRows);
+  return [...active, ...inactive].map((row, index) => ({ ...row, rank: index + 1 }));
+}

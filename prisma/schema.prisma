@@ -135,6 +135,8 @@ model Tournament {
   ligaDoc     Json?
   /// Snapshot oficial de preclasificación (`Tournament.preclasificacion` en frontend).
   preclasificacionJson Json?
+  /// Plantel de grupos editado desde admin (`Tournament.groupRosterOverride` en frontend).
+  groupRosterOverrideJson Json?
   winnerId    String?           @db.VarChar(64)
   finalistId  String?           @db.VarChar(64)
   createdAt   DateTime          @default(now())
@@ -158,6 +160,7 @@ model TournamentScheduleEntry {
   venue            String?        @db.VarChar(256)
   note             String?        @db.Text
   confirmedAt      Int?
+  featuredForHome  Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
@@ -314,13 +317,16 @@ model News {
   title       String     @db.VarChar(255)
   excerpt     String?    @db.Text
   body        String?    @db.LongText
-  image       String?    @db.VarChar(512)
+  image       String?    @db.LongText
+  topic       String     @default("General") @db.VarChar(32)
   status      NewsStatus @default(draft)
   publishedAt DateTime?
+  pinnedAt    DateTime?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   @@index([status, publishedAt])
+  @@index([pinnedAt])
 }
 
 model AuditLog {

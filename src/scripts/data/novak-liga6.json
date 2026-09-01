@@ -1,0 +1,87 @@
+{
+    "torneo": "Novak Djokovic",
+    "liga": 6,
+    "grupos": {
+      "A": [
+        "Cellilli F.",
+        "Amezague J.",
+        "De Ruyck G.",
+        "Fedrjanic N.",
+        "Bataglia F."
+      ],
+      "B": [
+        "Ballesta F.",
+        "Antuña A.",
+        "Ferrarotti E.",
+        "Fratini M.",
+        "Marceca M."
+      ]
+    },
+    "fechas": [
+      {
+        "numero": 1,
+        "grupos": {
+          "A": [
+            "Cellilli F. (P) vs Bataglia F.",
+            "De Ruyck G. (P) vs Fedrjanic N.",
+            "Libre: Amezague J."
+          ],
+          "B": [
+            "Ballesta F. (P) vs Antuña A.",
+            "Ferrarotti E. (P) vs Fratini M."
+          ]
+        }
+      },
+      {
+        "numero": 2,
+        "grupos": {
+          "A": [
+            "Fedrjanic N. (P) vs Cellilli F.",
+            "De Ruyck G. (P) vs Amezague J.",
+            "Libre: Bataglia F."
+          ],
+          "B": [
+            "Ballesta F. (P) vs Ferrarotti E.",
+            "Antuña A. (P) vs Fratini M."
+          ]
+        }
+      },
+      {
+        "numero": 3,
+        "grupos": {
+          "A": [
+            "Cellilli F. (P) vs De Ruyck G.",
+            "Amezague J. (P) vs Bataglia F.",
+            "Libre: Fedrjanic N."
+          ],
+          "B": [
+            "Ballesta F. (P) vs Fratini M.",
+            "Antuña A. (P) vs Ferrarotti E."
+          ]
+        }
+      },
+      {
+        "numero": 4,
+        "grupos": {
+          "A": [
+            "Amezague J. (P) vs Cellilli F.",
+            "Bataglia F. (P) vs Fedrjanic N.",
+            "Libre: De Ruyck G."
+          ],
+          "B": []
+        }
+      },
+      {
+        "numero": 5,
+        "grupos": {
+          "A": [
+            "Bataglia F. (P) vs De Ruyck G.",
+            "Fedrjanic N. (P) vs Amezague J.",
+            "Libre: Cellilli F."
+          ],
+          "B": []
+        }
+      }
+    ],
+    "nota": "(P): Jugador asignado para llevar pelotas en ese partido."
+  }

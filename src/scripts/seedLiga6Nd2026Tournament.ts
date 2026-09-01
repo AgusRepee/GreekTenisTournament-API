@@ -5,21 +5,15 @@ import { recalculateRankings } from '../services/recalculateRankings.js';
 
 const TOURNAMENT_ID = 't-novak-l6';
 const LEAGUE_NUM = 6;
-const CATEGORY = 'Quinta B';
+const CATEGORY = 'Sexta';
 const BYE_PLAYER_ID = 'sys-ko-bye';
 const CLASSIFICATION_RULE =
-  'Clasifican a Cuartos de Final los 4 primeros de cada grupo. Cellilli F. y Ballesta F. pasan directo a Semifinal por BYE.';
-
-// --- Oshiro E. fue eliminado del torneo Liga 6. Solo aparece en el bloque de limpieza ---
-const OSHIRO_PLAYER_ID = 'p-l6nd-oshiro-e';
-const OSHIRO_NAME = 'Oshiro E.';
+  'Clasifican a Cuartos de Final los 4 primeros de cada grupo.';
 
 const groups = {
   A: ['Cellilli F.', 'Amezague J.', 'De Ruyck G.', 'Fedrjanic N.', 'Bataglia F.'],
-  B: ['Ballesta F.', 'Antuña A.', 'Ferrarotti E.', 'Fratini M.'],
+  B: ['Ballesta F.', 'Antuña A.', 'Ferrarotti E.', 'Fratini M.', 'Marceca M.'],
 } as const;
-
-const REMOVED_TOURNAMENT_PLAYERS = ['Oshiro E.'] as const;
 
 type SeedMatch = {
   group: string;
@@ -46,23 +40,27 @@ const fixtures: SeedMatch[] = [
   { group: 'A', round: 2, date: '2026-04-26', time: '14:00', playerA: 'Fedrjanic N.', playerB: 'Cellilli F.', ballPlayer: 'Fedrjanic N.', winner: 'Cellilli F.', winnerScore: '6-1 / 6-4' },
   { group: 'A', round: 3, date: '2026-04-26', time: '15:00', playerA: 'Amezague J.', playerB: 'Bataglia F.', ballPlayer: 'Amezague J.', winner: 'Amezague J.', winnerScore: '6-2 / 6-2' },
   { group: 'A', round: 4, date: '2026-05-03', time: '15:00', playerA: 'Bataglia F.', playerB: 'Fedrjanic N.', ballPlayer: 'Bataglia F.', winner: 'Fedrjanic N.', winnerScore: '6-2 / 6-4' },
-  { group: 'A', round: 3, playerA: 'Cellilli F.', playerB: 'De Ruyck G.', winner: 'Cellilli F.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
-  { group: 'B', round: 2, date: '2026-03-15', time: '20:00', playerA: 'Antuña A.', playerB: 'Ballesta F.', ballPlayer: 'Antuña A.', winner: 'Ballesta F.', winnerScore: '6-2 / 3-6 / 10-7', note: 'Unificado desde Antuña R.' },
-  { group: 'B', round: 5, date: '2026-03-24', time: '09:00', playerA: 'Antuña A.', playerB: 'Fratini M.', ballPlayer: 'Antuña A.', winner: 'Antuña A.', winnerScore: '6-1 / 6-1', note: 'Unificado desde Antuña R.' },
+  { group: 'A', round: 3, date: '2026-05-04', time: '14:00', playerA: 'Cellilli F.', playerB: 'De Ruyck G.', winner: 'Cellilli F.', winnerScore: 'W.O.', status: 'walkover' },
+  { group: 'B', round: 2, date: '2026-03-15', time: '20:00', playerA: 'Antuña A.', playerB: 'Ballesta F.', ballPlayer: 'Antuña A.', winner: 'Ballesta F.', winnerScore: '6-2 / 3-6 / 10-7' },
+  { group: 'B', round: 2, date: '2026-03-24', time: '09:00', playerA: 'Antuña A.', playerB: 'Fratini M.', ballPlayer: 'Antuña A.', winner: 'Antuña A.', winnerScore: '6-1 / 6-1' },
   { group: 'B', round: 1, date: '2026-04-02', time: '21:00', playerA: 'Ballesta F.', playerB: 'Ferrarotti E.', ballPlayer: 'Ballesta F.', winner: 'Ballesta F.', winnerScore: '6-1 / 6-1' },
   { group: 'B', round: 3, date: '2026-04-12', time: '16:00', playerA: 'Fratini M.', playerB: 'Ferrarotti E.', ballPlayer: 'Fratini M.', winner: 'Ferrarotti E.', winnerScore: '6-2 / 6-1' },
+  { group: 'B', round: 4, date: '2026-04-12', time: '18:00', playerA: 'Marceca M.', playerB: 'Antuña A.', ballPlayer: 'Marceca M.', winner: 'Antuña A.', winnerScore: '6-2 / 6-1' },
+  { group: 'B', round: 5, date: '2026-04-26', time: '16:00', playerA: 'Marceca M.', playerB: 'Fratini M.', ballPlayer: 'Marceca M.', winner: 'Fratini M.', winnerScore: '0-1 y abandono', scoreIsPlayerAPerspective: true, status: 'retired' },
   { group: 'B', round: 4, date: '2026-04-26', time: '19:00', playerA: 'Ferrarotti E.', playerB: 'Antuña A.', ballPlayer: 'Ferrarotti E.', winner: 'Antuña A.', winnerScore: '6-1 / 6-0' },
-  { group: 'B', round: 4, playerA: 'Ballesta F.', playerB: 'Fratini M.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover', note: 'Resultado informado el 06/05/2026.' },
+  { group: 'B', round: 5, date: '2026-05-01', time: '12:45', playerA: 'Ballesta F.', playerB: 'Marceca M.', ballPlayer: 'Ballesta F.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover' },
+  { group: 'B', round: 3, date: '2026-05-04', time: '15:00', playerA: 'Ballesta F.', playerB: 'Fratini M.', winner: 'Ballesta F.', winnerScore: 'W.O.', status: 'walkover' },
+  { group: 'B', round: 2, date: '2026-05-02', time: '12:00', playerA: 'Ferrarotti E.', playerB: 'Marceca M.', winner: 'Ferrarotti E.', winnerScore: 'W.O.', status: 'walkover' },
 ];
 
 const knockoutFixtures: SeedMatch[] = [
-  { group: 'Cuartos de Final', round: 0, playerA: 'Cellilli F.', playerB: 'BYE', winner: 'Cellilli F.', winnerScore: 'BYE', note: 'Cellilli F. pasa directo a Semifinal por BYE.' },
-  { group: 'Cuartos de Final', round: 0, playerA: 'Antuña A.', playerB: 'De Ruyck G.', note: 'Pendiente / sin resultado cargado.' },
-  { group: 'Cuartos de Final', round: 0, playerA: 'Amezague J.', playerB: 'Ferrarotti E.', note: 'Pendiente / sin resultado cargado.' },
-  { group: 'Cuartos de Final', round: 0, playerA: 'BYE', playerB: 'Ballesta F.', winner: 'Ballesta F.', winnerScore: 'BYE', note: 'Ballesta F. pasa directo a Semifinal por BYE.' },
-  { group: 'Semifinales', round: 0, playerA: 'Cellilli F.', playerB: 'TBD (SF1)', note: 'Pendiente: ganador de Antuña A. / De Ruyck G.' },
-  { group: 'Semifinales', round: 0, playerA: 'TBD (SF2)', playerB: 'Ballesta F.', note: 'Pendiente: ganador de Amezague J. / Ferrarotti E.' },
-  { group: 'Final', round: 0, playerA: 'TBD (Final A)', playerB: 'TBD (Final B)', note: 'Pendiente.' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '12:00', playerA: 'Cellilli F.', playerB: 'Fratini M.', winner: 'Cellilli F.', winnerScore: '6-1 / 6-1' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-16', time: '18:00', playerA: 'Antuña A.', playerB: 'De Ruyck G.', winner: 'Antuña A.', winnerScore: 'W.O.', status: 'walkover' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-22', time: '18:00', playerA: 'Amezague J.', playerB: 'Ferrarotti E.', winner: 'Amezague J.', winnerScore: 'W.O.', status: 'walkover' },
+  { group: 'Cuartos de Final', round: 0, date: '2026-05-10', time: '12:30', playerA: 'Ballesta F.', playerB: 'Fedrjanic N.', winner: 'Ballesta F.', winnerScore: '6-3 / 1-6 / 10-7' },
+  { group: 'Semifinales', round: 0, date: '2026-05-17', time: '16:00', playerA: 'Cellilli F.', playerB: 'Antuña A.', winner: 'Antuña A.', winnerScore: '6-4 / 6-3' },
+  { group: 'Semifinales', round: 0, date: '2026-05-22', time: '21:00', playerA: 'Amezague J.', playerB: 'Ballesta F.', note: 'Pendiente / sin resultado cargado.' },
+  { group: 'Final', round: 0, date: '2026-05-29', time: '21:00', playerA: 'Antuña A.', playerB: 'TBD (Final B)', note: 'Pendiente: ganador de Amezague J. / Ballesta F.' },
 ];
 
 function playerId(name: string): string {
@@ -127,14 +125,14 @@ function bracketJson(): Prisma.InputJsonValue {
   return {
     preliminary: [],
     quarter: [
-      { id: 'qf-1', slotA: playerId('Cellilli F.'), slotB: BYE_PLAYER_ID, winner: playerId('Cellilli F.'), status: 'bye' },
+      { id: 'qf-1', slotA: playerId('Cellilli F.'), slotB: playerId('Fratini M.'), status: 'pending' },
       { id: 'qf-2', slotA: playerId('Antuña A.'), slotB: playerId('De Ruyck G.'), status: 'pending' },
       { id: 'qf-3', slotA: playerId('Amezague J.'), slotB: playerId('Ferrarotti E.'), status: 'pending' },
-      { id: 'qf-4', slotA: BYE_PLAYER_ID, slotB: playerId('Ballesta F.'), winner: playerId('Ballesta F.'), status: 'bye' },
+      { id: 'qf-4', slotA: playerId('Ballesta F.'), slotB: playerId('Fedrjanic N.'), status: 'pending' },
     ],
     semifinals: [
-      { id: 'sf-1', slotA: playerId('Cellilli F.'), slotB: 'WIN_QF_2', status: 'pending' },
-      { id: 'sf-2', slotA: 'WIN_QF_3', slotB: playerId('Ballesta F.'), status: 'pending' },
+      { id: 'sf-1', slotA: 'WIN_QF_1', slotB: 'WIN_QF_2', status: 'pending' },
+      { id: 'sf-2', slotA: 'WIN_QF_3', slotB: 'WIN_QF_4', status: 'pending' },
     ],
     final: { id: 'final', slotA: 'WIN_SF_1', slotB: 'WIN_SF_2', status: 'pending' },
     champion: null,
@@ -282,55 +280,8 @@ async function upsertSeedMatch(
 
   return { created: !existingId, matchId: matchIdToUse };
 }
-/**
- * Limpieza idempotente de datos de Oshiro E. en t-novak-l6.
-  * No borra otros torneos ni jugadores.
-   */
-async function cleanupOshiroFromLiga6(): Promise<void> {
-    const oshiroById = await prisma.player.findUnique({ where: { id: OSHIRO_PLAYER_ID } });
-    const oshiroByName = !oshiroById ? await prisma.player.findFirst({ where: { name: OSHIRO_NAME } }) : null;
-    const oshiroId = oshiroById?.id ?? oshiroByName?.id;
-    if (!oshiroId) {
-          console.log('[cleanup] Oshiro E. no encontrado en DB — nada que limpiar.');
-          return;
-    }
-    const mrDeleted = await prisma.matchResult.deleteMany({
-          where: { tournamentId: TOURNAMENT_ID, OR: [{ playerA: { contains: 'Oshiro' } }, { playerB: { contains: 'Oshiro' } }] },
-    });
-    console.log(`[cleanup] MatchResult de Oshiro eliminados: ${mrDeleted.count}`);
-    const seDeleted = await prisma.tournamentScheduleEntry.deleteMany({
-          where: { tournamentId: TOURNAMENT_ID, dedupeKey: { contains: 'oshiro' } },
-    });
-    console.log(`[cleanup] TournamentScheduleEntry de Oshiro eliminados: ${seDeleted.count}`);
-    const oshiroMatches = await prisma.match.findMany({
-          where: { tournamentId: TOURNAMENT_ID, OR: [{ player1Id: oshiroId }, { player2Id: oshiroId }] },
-          select: { id: true },
-    });
-    if (oshiroMatches.length > 0) {
-          const ids = oshiroMatches.map((m) => m.id);
-          await prisma.matchResult.deleteMany({ where: { matchId: { in: ids } } });
-          await prisma.match.deleteMany({ where: { id: { in: ids } } });
-          console.log(`[cleanup] Match de Oshiro eliminados: ${oshiroMatches.length}`);
-    }
-    const liga6Groups = await prisma.group.findMany({ where: { tournamentId: TOURNAMENT_ID }, select: { id: true } });
-    if (liga6Groups.length > 0) {
-          const gpDeleted = await prisma.groupPlayer.deleteMany({
-                  where: { groupId: { in: liga6Groups.map((g) => g.id) }, playerId: oshiroId },
-          });
-          console.log(`[cleanup] GroupPlayer de Oshiro eliminados: ${gpDeleted.count}`);
-    }
-    await prisma.player.update({ where: { id: oshiroId }, data: { rosterActive: false, profileVisibility: 'hidden' } });
-    console.log('[cleanup] Oshiro E. marcado rosterActive=false, profileVisibility=hidden.');
-}
-
-
 async function main() {
-  // --- Limpieza de Oshiro E. (idempotente) ---
-    console.log('[seedLiga6Nd2026] Limpiando datos de Oshiro E. en t-novak-l6...');
-    await cleanupOshiroFromLiga6();
-    console.log('[seedLiga6Nd2026] Limpieza completada.');
-  
-    const allPlayers = Array.from(new Set(Object.values(groups).flat()));
+  const allPlayers = Array.from(new Set(Object.values(groups).flat()));
   let createdGroupMatches = 0;
   let updatedGroupMatches = 0;
   let createdKoMatches = 0;
@@ -339,54 +290,20 @@ async function main() {
   await prisma.$transaction(async (tx) => {
     await tx.player.updateMany({ where: { name: 'Antuña R.' }, data: { name: 'Antuña A.', displayName: 'Antuña A.' } });
     await tx.player.updateMany({ where: { name: 'Bataglia' }, data: { name: 'Bataglia F.', displayName: 'Bataglia F.' } });
-    const removedPlayerIds = REMOVED_TOURNAMENT_PLAYERS.map((name) => playerId(name));
-
-    await tx.matchResult.deleteMany({
-      where: {
-        tournamentId: TOURNAMENT_ID,
-        OR: [
-          { playerA: { in: [...REMOVED_TOURNAMENT_PLAYERS] } },
-          { playerB: { in: [...REMOVED_TOURNAMENT_PLAYERS] } },
-        ],
-      },
-    });
-    await tx.tournamentScheduleEntry.deleteMany({
-      where: {
-        tournamentId: TOURNAMENT_ID,
-        OR: REMOVED_TOURNAMENT_PLAYERS.flatMap((name) => [
-          { dedupeKey: { contains: name.toLowerCase() } },
-          { dedupeKey: { contains: name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() } },
-        ]),
-      },
-    });
-    await tx.match.deleteMany({
-      where: {
-        tournamentId: TOURNAMENT_ID,
-        OR: [
-          { player1Id: { in: removedPlayerIds } },
-          { player2Id: { in: removedPlayerIds } },
-        ],
-      },
-    });
-    await tx.groupPlayer.deleteMany({
-      where: {
-        playerId: { in: removedPlayerIds },
-        group: { tournamentId: TOURNAMENT_ID },
-      },
-    });
-
     for (const name of allPlayers) {
       await tx.player.upsert({
         where: { id: playerId(name) },
         create: { id: playerId(name), name, displayName: name, category: CATEGORY, nationality: 'Argentina' },
-        update: { name, displayName: name, category: CATEGORY },
+        update: { name, displayName: name, category: CATEGORY, rosterActive: true, profileVisibility: 'active' },
       });
     }
     await upsertSystemPlayer(tx, BYE_PLAYER_ID, 'BYE');
-    await upsertSystemPlayer(tx, 'sys-ko-sf1b', 'Ganador Antuña A. / De Ruyck G.');
-    await upsertSystemPlayer(tx, 'sys-ko-sf2a', 'Ganador Amezague J. / Ferrarotti E.');
-    await upsertSystemPlayer(tx, 'sys-ko-fa', 'Ganador Semifinal 1');
-    await upsertSystemPlayer(tx, 'sys-ko-fb', 'Ganador Semifinal 2');
+    await upsertSystemPlayer(tx, 'sys-ko-sf1a', 'TBD');
+    await upsertSystemPlayer(tx, 'sys-ko-sf1b', 'TBD');
+    await upsertSystemPlayer(tx, 'sys-ko-sf2a', 'TBD');
+    await upsertSystemPlayer(tx, 'sys-ko-sf2b', 'TBD');
+    await upsertSystemPlayer(tx, 'sys-ko-fa', 'TBD');
+    await upsertSystemPlayer(tx, 'sys-ko-fb', 'TBD');
 
     await tx.tournament.upsert({
       where: { id: TOURNAMENT_ID },
@@ -396,8 +313,8 @@ async function main() {
         name: 'Novak Djokovic - Liga 6',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-03-15T00:00:00.000Z'),
-        endDate: new Date('2026-05-31T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
+        endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
         coverImage: 'novakblanco.webp',
         slotsTotal: allPlayers.length,

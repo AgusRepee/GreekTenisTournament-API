@@ -7,7 +7,7 @@ const LEAGUE_NUM = 6;
 const INTERZONAL_GROUP = 'Interzonal';
 
 const groups = {
-  A: ['Ballesta F.', 'De Ruyck G.', 'Cerene B.', 'Oshiro E.'],
+  A: ['Ballesta F.', 'De Ruyck G.', 'Cerene B.', 'Marceca M.'],
   B: ['Ferrarotti E.', 'Fedrjanic N.', 'Fratini M.', 'Jaureguiberry C.'],
   C: ['Oswald J.', 'Avalos G.', 'Romay J.', 'Cellilli F.'],
 } as const;
@@ -22,10 +22,10 @@ type SeedMatch = {
 
 const fixtures: SeedMatch[] = [
   { group: 'A', round: 1, playerA: 'Ballesta F.', playerB: 'De Ruyck G.', ballPlayer: 'Ballesta F.' },
-  { group: 'A', round: 1, playerA: 'Cerene B.', playerB: 'Oshiro E.', ballPlayer: 'Cerene B.' },
+  { group: 'A', round: 1, playerA: 'Cerene B.', playerB: 'Marceca M.', ballPlayer: 'Cerene B.' },
   { group: 'A', round: 2, playerA: 'Ballesta F.', playerB: 'Cerene B.', ballPlayer: 'Ballesta F.' },
-  { group: 'A', round: 2, playerA: 'Oshiro E.', playerB: 'De Ruyck G.', ballPlayer: 'Oshiro E.' },
-  { group: 'A', round: 3, playerA: 'Oshiro E.', playerB: 'Ballesta F.', ballPlayer: 'Oshiro E.' },
+  { group: 'A', round: 2, playerA: 'Marceca M.', playerB: 'De Ruyck G.', ballPlayer: 'Marceca M.' },
+  { group: 'A', round: 3, playerA: 'Marceca M.', playerB: 'Ballesta F.', ballPlayer: 'Marceca M.' },
   { group: 'A', round: 3, playerA: 'De Ruyck G.', playerB: 'Cerene B.', ballPlayer: 'De Ruyck G.' },
   { group: 'B', round: 1, playerA: 'Ferrarotti E.', playerB: 'Fedrjanic N.', ballPlayer: 'Ferrarotti E.' },
   { group: 'B', round: 1, playerA: 'Fratini M.', playerB: 'Jaureguiberry C.', ballPlayer: 'Fratini M.' },
@@ -42,7 +42,7 @@ const fixtures: SeedMatch[] = [
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Cellilli F.', playerB: 'Ballesta F.', ballPlayer: 'Cellilli F.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'De Ruyck G.', playerB: 'Oswald J.', ballPlayer: 'De Ruyck G.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Cerene B.', playerB: 'Fratini M.', ballPlayer: 'Cerene B.' },
-  { group: INTERZONAL_GROUP, round: 4, playerA: 'Jaureguiberry C.', playerB: 'Oshiro E.', ballPlayer: 'Jaureguiberry C.' },
+  { group: INTERZONAL_GROUP, round: 4, playerA: 'Jaureguiberry C.', playerB: 'Marceca M.', ballPlayer: 'Jaureguiberry C.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Ferrarotti E.', playerB: 'Avalos G.', ballPlayer: 'Ferrarotti E.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Romay J.', playerB: 'Fedrjanic N.', ballPlayer: 'Romay J.' },
 ];
@@ -79,7 +79,7 @@ async function resolvePlayerId(name: string): Promise<string> {
         id,
         name,
         displayName: name,
-        category: 'Quinta B',
+        category: 'Sexta',
         nationality: 'Argentina',
       },
       update: { name, displayName: name },
@@ -119,7 +119,7 @@ function ligaDoc(): Prisma.InputJsonValue {
       {
         numero: 1,
         grupos: {
-          A: ['Ballesta F. (P) vs De Ruyck G.', 'Cerene B. (P) vs Oshiro E.'],
+          A: ['Ballesta F. (P) vs De Ruyck G.', 'Cerene B. (P) vs Marceca M.'],
           B: ['Ferrarotti E. (P) vs Fedrjanic N.', 'Fratini M. (P) vs Jaureguiberry C.'],
           C: ['Oswald J. (P) vs Avalos G.', 'Romay J. (P) vs Cellilli F.'],
         },
@@ -127,7 +127,7 @@ function ligaDoc(): Prisma.InputJsonValue {
       {
         numero: 2,
         grupos: {
-          A: ['Ballesta F. (P) vs Cerene B.', 'Oshiro E. (P) vs De Ruyck G.'],
+          A: ['Ballesta F. (P) vs Cerene B.', 'Marceca M. (P) vs De Ruyck G.'],
           B: ['Fratini M. (P) vs Ferrarotti E.', 'Fedrjanic N. (P) vs Jaureguiberry C.'],
           C: ['Oswald J. (P) vs Romay J.', 'Avalos G. (P) vs Cellilli F.'],
         },
@@ -135,7 +135,7 @@ function ligaDoc(): Prisma.InputJsonValue {
       {
         numero: 3,
         grupos: {
-          A: ['Oshiro E. (P) vs Ballesta F.', 'De Ruyck G. (P) vs Cerene B.'],
+          A: ['Marceca M. (P) vs Ballesta F.', 'De Ruyck G. (P) vs Cerene B.'],
           B: ['Jaureguiberry C. (P) vs Ferrarotti E.', 'Fedrjanic N. (P) vs Fratini M.'],
           C: ['Cellilli F. (P) vs Oswald J.', 'Avalos G. (P) vs Romay J.'],
         },
@@ -147,7 +147,7 @@ function ligaDoc(): Prisma.InputJsonValue {
           'Cellilli F. (P) vs Ballesta F.',
           'De Ruyck G. (P) vs Oswald J.',
           'Cerene B. (P) vs Fratini M.',
-          'Jaureguiberry C. (P) vs Oshiro E.',
+          'Jaureguiberry C. (P) vs Marceca M.',
           'Ferrarotti E. (P) vs Avalos G.',
           'Romay J. (P) vs Fedrjanic N.',
         ],
@@ -172,7 +172,7 @@ async function main() {
         name: 'Rafael Nadal - Liga 6',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-05-26T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
         endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis',
         coverImage: 'rafa-blanco.webp',
@@ -195,8 +195,8 @@ async function main() {
 
     const league = await tx.tournamentLeague.upsert({
       where: { tournamentId_leagueNum: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM } },
-      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed' },
-      update: { groupStageStatus: 'confirmed' },
+      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'open' },
+      update: { groupStageStatus: 'open' },
     });
 
     const groupIds = new Map<string, string>();

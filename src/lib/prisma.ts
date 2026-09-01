@@ -12,6 +12,8 @@ function createPrismaClient(): PrismaClient {
     password: cfg.password,
     database: cfg.database,
     connectionLimit: 5,
+    connectTimeout: 10_000,
+    acquireTimeout: 10_000,
     allowPublicKeyRetrieval: true,
   });
   return new PrismaClient({
@@ -20,4 +22,11 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
-export const prisma = createPrismaClient();
+const globalForPrisma = globalThis as typeof globalThis & { __greekPrisma?: PrismaClient };
+
+/** Una sola instancia por proceso Passenger/Node (pool limitado en hosting compartido). */
+export const prisma = globalForPrisma.__greekPrisma ?? createPrismaClient();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.__greekPrisma = prisma;
+}

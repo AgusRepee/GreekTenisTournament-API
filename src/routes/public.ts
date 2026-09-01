@@ -1,12 +1,17 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { findTournamentPublicMetaById } from '../services/tournamentMetaQuery.js';
 import { buildPublicPlayerProfile } from '../services/buildPublicPlayerProfile.js';
-import { mergeActiveRosterRankingRows } from '../services/activeRosterRankingRows.js';
 import {
   buildPublicGroupStandings,
   findTournamentBySlugOrId,
 } from '../services/buildPublicGroupStandings.js';
-import { comparePublicRankingRows, type RankingRowWithPlayer } from '../services/rankingPublicSort.js';
+import { pickBestMatchScore } from '../services/pickBestMatchScore.js';
+import {
+  fetchPublicPlayersCatalog,
+  fetchPublicRankingsCatalog,
+  fetchPublicTournamentsCatalog,
+} from '../services/publicCatalogQueries.js';
 
 export const publicRouter = Router();
 
@@ -35,26 +40,7 @@ publicRouter.get('/home', async (_req, res, next) => {
 
 publicRouter.get('/tournaments', async (_req, res, next) => {
   try {
-    const rows = await prisma.tournament.findMany({
-      orderBy: { startDate: 'desc' },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        status: true,
-        startDate: true,
-        endDate: true,
-        location: true,
-        coverImage: true,
-        tournamentType: true,
-        slotsTotal: true,
-        slotsTaken: true,
-        winnerId: true,
-        finalistId: true,
-        leagues: { orderBy: { leagueNum: 'asc' }, select: { leagueNum: true } },
-      },
-    });
-    res.json(rows);
+    res.json(await fetchPublicTournamentsCatalog());
   } catch (e) {
     next(e);
   }
@@ -63,15 +49,7 @@ publicRouter.get('/tournaments', async (_req, res, next) => {
 /** Metadatos mínimos por id (p. ej. seeds/preclasificación para bracket público). Debe ir antes de `/tournaments/:slug`. */
 publicRouter.get('/tournaments/by-id/:id', async (req, res, next) => {
   try {
-    const row = await prisma.tournament.findUnique({
-      where: { id: req.params.id },
-      select: {
-        id: true,
-        slug: true,
-        name: true,
-        preclasificacionJson: true,
-      },
-    });
+    const row = await findTournamentPublicMetaById(req.params.id);
     if (!row) {
       res.status(404).json({ error: 'Not found' });
       return;
@@ -88,7 +66,7 @@ async function buildTournamentSchedulePayload(tournamentId: string) {
     select: { id: true, name: true, slug: true, status: true, startDate: true, endDate: true },
   });
   if (!t) return null;
-  const [matches, schedules] = await Promise.all([
+  const [matches, schedules, matchResults] = await Promise.all([
     prisma.match.findMany({
       where: { tournamentId: t.id },
       orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }],
@@ -102,8 +80,12 @@ async function buildTournamentSchedulePayload(tournamentId: string) {
       where: { tournamentId: t.id },
       orderBy: { updatedAt: 'desc' },
     }),
+    prisma.matchResult.findMany({
+      where: { tournamentId: t.id },
+      orderBy: [{ roundNum: 'asc' }, { updatedAt: 'desc' }],
+    }),
   ]);
-  return { tournament: t, matches, schedules };
+  return { tournament: t, matches, schedules, matchResults };
 }
 
 /** Agenda pública por `tournamentId` (el SPA suele tener el id aunque el slug solo exista en MySQL). */
@@ -168,6 +150,8 @@ async function buildPublicEliminationPayload(tournamentId: string, leagueNum: nu
   });
   if (!league) return null;
   const st = league.eliminationStatus ?? '';
+  const eliminationPublic =
+    st === 'confirmed' || st === 'in_progress' || st === 'finished';
   const matches =
     st === 'confirmed' || st === 'in_progress' || st === 'finished'
       ? await prisma.match.findMany({
@@ -181,7 +165,29 @@ async function buildPublicEliminationPayload(tournamentId: string, leagueNum: nu
           },
         })
       : [];
-  return { league, bracket: league.elimination, matches };
+  const matchIds = matches.map((m) => m.id);
+  const resultRows =
+    matchIds.length > 0
+      ? await prisma.matchResult.findMany({
+          where: {
+            matchId: { in: matchIds },
+            status: { in: ['played', 'retired', 'walkover'] },
+          },
+          select: { matchId: true, score: true },
+        })
+      : [];
+  const resultScoreByMatchId = new Map(
+    resultRows.filter((r) => r.matchId).map((r) => [r.matchId!, r.score ?? '']),
+  );
+  const enrichedMatches = matches.map((m) => ({
+    ...m,
+    score: pickBestMatchScore(m.score, resultScoreByMatchId.get(m.id)),
+  }));
+  return {
+    league,
+    bracket: eliminationPublic ? league.elimination : null,
+    matches: enrichedMatches,
+  };
 }
 
 /** Eliminación pública por `tournamentId` + número de liga (default 1). */
@@ -367,6 +373,7 @@ publicRouter.get('/tournaments/:slug', async (req, res, next) => {
       slotsTaken: row.slotsTaken,
       ligaDoc: row.ligaDoc,
       preclasificacionJson: row.preclasificacionJson,
+      groupRosterOverrideJson: row.groupRosterOverrideJson,
       winnerId: row.winnerId,
       finalistId: row.finalistId,
       createdAt: row.createdAt,
@@ -385,6 +392,7 @@ publicRouter.get('/tournaments/:slug', async (req, res, next) => {
       groupStandings: groupStandings?.groups ?? [],
       elimination,
       preclasificacion: row.preclasificacionJson ?? null,
+      groupRosterOverrideJson: row.groupRosterOverrideJson ?? null,
     });
   } catch (e) {
     next(e);
@@ -393,50 +401,10 @@ publicRouter.get('/tournaments/:slug', async (req, res, next) => {
 
 publicRouter.get('/rankings', async (req, res, next) => {
   try {
-    const leagueRaw = req.query.league;
+    const leagueRaw = req.query.league ?? req.query.leagueNum;
     const n = leagueRaw != null && String(leagueRaw).trim() !== '' ? Number(leagueRaw) : NaN;
     const leagueNum = Number.isFinite(n) && n >= 1 && n <= 6 ? Math.floor(n) : null;
-
-    const baseWhere =
-      leagueNum != null && leagueNum >= 1 && leagueNum <= 6 ? { league: leagueNum } : {};
-
-    const rows = await prisma.leagueRankingRow.findMany({
-      where: baseWhere,
-      include: { player: { select: { id: true, name: true, category: true, profileImage: true } } },
-      take: 2000,
-    });
-
-    const typed = await mergeActiveRosterRankingRows(prisma, rows as RankingRowWithPlayer[], leagueNum);
-    const snapshots = await prisma.rankingSnapshot.findMany({
-      orderBy: { computedAt: 'desc' },
-      take: 5,
-    });
-
-    const rankRows = (list: RankingRowWithPlayer[]) =>
-      [...list].sort(comparePublicRankingRows).map((r, i) => ({ ...r, rank: i + 1 }));
-
-    if (leagueNum != null) {
-      const withRank = rankRows(typed);
-      res.json({
-        rows: withRank,
-        leagueFilter: leagueNum,
-        snapshots,
-        leagueRows: withRank,
-      });
-      return;
-    }
-
-    const byLeague: Record<string, ReturnType<typeof rankRows>> = {};
-    for (let L = 1; L <= 6; L++) {
-      byLeague[String(L)] = rankRows(typed.filter((r) => r.league === L));
-    }
-
-    res.json({
-      byLeague,
-      snapshots,
-      /** Lista plana (todas las ligas), útil para clientes legacy */
-      leagueRows: typed.sort(comparePublicRankingRows),
-    });
+    res.json(await fetchPublicRankingsCatalog(leagueNum));
   } catch (e) {
     next(e);
   }
@@ -444,27 +412,7 @@ publicRouter.get('/rankings', async (req, res, next) => {
 
 publicRouter.get('/players', async (_req, res, next) => {
   try {
-    const rows = await prisma.player.findMany({
-      where: { profileVisibility: 'active', rosterActive: true },
-      orderBy: { name: 'asc' },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        displayName: true,
-        name: true,
-        category: true,
-        birthDate: true,
-        nationality: true,
-        playingHand: true,
-        heightCm: true,
-        profileBio: true,
-        profileImage: true,
-        profileVisibility: true,
-        rosterActive: true,
-      },
-    });
-    res.json(rows);
+    res.json(await fetchPublicPlayersCatalog());
   } catch (e) {
     next(e);
   }

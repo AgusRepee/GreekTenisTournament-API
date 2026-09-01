@@ -9,7 +9,7 @@ const INTERZONAL_GROUP = 'Interzonal';
 const groups = {
   A: ['Gaudina A.', 'Filosa M.', 'Guidobono A.', 'Duarte D.'],
   B: ['Garassi A.', 'Tacain R.', 'Rothkel M.', 'Lacave L.'],
-  C: ['Pfening G.', 'Zanella H.', 'Alvarez I.', 'Naddeo M.'],
+  C: ['Pfening G.', 'Pitera F.', 'Alvarez I.', 'Naddeo M.'],
 } as const;
 
 type SeedMatch = {
@@ -34,12 +34,12 @@ const fixtures: SeedMatch[] = [
   { group: 'B', round: 3, playerA: 'Garassi A.', playerB: 'Lacave L.', ballPlayer: 'Garassi A.' },
   { group: 'B', round: 3, playerA: 'Rothkel M.', playerB: 'Tacain R.', ballPlayer: 'Rothkel M.' },
   { group: 'C', round: 1, playerA: 'Pfening G.', playerB: 'Alvarez I.', ballPlayer: 'Pfening G.' },
-  { group: 'C', round: 1, playerA: 'Naddeo M.', playerB: 'Zanella H.', ballPlayer: 'Naddeo M.' },
+  { group: 'C', round: 1, playerA: 'Naddeo M.', playerB: 'Pitera F.', ballPlayer: 'Naddeo M.' },
   { group: 'C', round: 2, playerA: 'Pfening G.', playerB: 'Naddeo M.', ballPlayer: 'Pfening G.' },
-  { group: 'C', round: 2, playerA: 'Alvarez I.', playerB: 'Zanella H.', ballPlayer: 'Alvarez I.' },
-  { group: 'C', round: 3, playerA: 'Zanella H.', playerB: 'Pfening G.', ballPlayer: 'Zanella H.' },
+  { group: 'C', round: 2, playerA: 'Alvarez I.', playerB: 'Pitera F.', ballPlayer: 'Alvarez I.' },
+  { group: 'C', round: 3, playerA: 'Pitera F.', playerB: 'Pfening G.', ballPlayer: 'Pitera F.' },
   { group: 'C', round: 3, playerA: 'Alvarez I.', playerB: 'Naddeo M.', ballPlayer: 'Alvarez I.' },
-  { group: INTERZONAL_GROUP, round: 4, playerA: 'Zanella H.', playerB: 'Gaudina A.', ballPlayer: 'Zanella H.' },
+  { group: INTERZONAL_GROUP, round: 4, playerA: 'Pitera F.', playerB: 'Gaudina A.', ballPlayer: 'Pitera F.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Guidobono A.', playerB: 'Pfening G.', ballPlayer: 'Guidobono A.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Filosa M.', playerB: 'Rothkel M.', ballPlayer: 'Filosa M.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Garassi A.', playerB: 'Duarte D.', ballPlayer: 'Garassi A.' },
@@ -121,7 +121,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Gaudina A. (P) vs Guidobono A.', 'Filosa M. (P) vs Duarte D.'],
           B: ['Lacave L. (P) vs Tacain R.', 'Rothkel M. (P) vs Garassi A.'],
-          C: ['Pfening G. (P) vs Alvarez I.', 'Naddeo M. (P) vs Zanella H.'],
+          C: ['Pfening G. (P) vs Alvarez I.', 'Naddeo M. (P) vs Pitera F.'],
         },
       },
       {
@@ -129,7 +129,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Gaudina A. (P) vs Filosa M.', 'Duarte D. (P) vs Guidobono A.'],
           B: ['Rothkel M. (P) vs Lacave L.', 'Tacain R. (P) vs Garassi A.'],
-          C: ['Pfening G. (P) vs Naddeo M.', 'Alvarez I. (P) vs Zanella H.'],
+          C: ['Pfening G. (P) vs Naddeo M.', 'Alvarez I. (P) vs Pitera F.'],
         },
       },
       {
@@ -137,14 +137,14 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Duarte D. (P) vs Gaudina A.', 'Guidobono A. (P) vs Filosa M.'],
           B: ['Garassi A. (P) vs Lacave L.', 'Rothkel M. (P) vs Tacain R.'],
-          C: ['Zanella H. (P) vs Pfening G.', 'Alvarez I. (P) vs Naddeo M.'],
+          C: ['Pitera F. (P) vs Pfening G.', 'Alvarez I. (P) vs Naddeo M.'],
         },
       },
       {
         numero: 4,
         tipo: 'interzonal',
         partidos: [
-          'Zanella H. (P) vs Gaudina A.',
+          'Pitera F. (P) vs Gaudina A.',
           'Guidobono A. (P) vs Pfening G.',
           'Filosa M. (P) vs Rothkel M.',
           'Garassi A. (P) vs Duarte D.',
@@ -172,7 +172,7 @@ async function main() {
         name: 'Rafael Nadal - Liga 1',
         tournamentType: 'greek500',
         status: 'upcoming',
-        startDate: new Date('2026-05-27T00:00:00.000Z'),
+        startDate: new Date('2026-05-22T00:00:00.000Z'),
         endDate: new Date('2026-12-31T00:00:00.000Z'),
         location: 'Club de Tenis — Pistas centrales',
         coverImage: 'rafa-violeta.webp',
@@ -195,8 +195,8 @@ async function main() {
 
     const league = await tx.tournamentLeague.upsert({
       where: { tournamentId_leagueNum: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM } },
-      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'confirmed' },
-      update: { groupStageStatus: 'confirmed' },
+      create: { tournamentId: TOURNAMENT_ID, leagueNum: LEAGUE_NUM, groupStageStatus: 'open' },
+      update: { groupStageStatus: 'open' },
     });
 
     const groupIds = new Map<string, string>();

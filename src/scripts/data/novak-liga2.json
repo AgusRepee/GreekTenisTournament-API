@@ -1,0 +1,133 @@
+{
+    "torneo": "Novak Djokovic",
+    "liga": 2,
+    "grupos": {
+      "A": [
+        "Lacave L.",
+        "Monzón M.",
+        "Colomer S.",
+        "Cancio M.",
+        "Del Pino A."
+      ],
+      "B": [
+        "Ferreyra O.",
+        "Ruiz J.",
+        "Komesu M.",
+        "Guareschi A.",
+        "Mayer D."
+      ],
+      "C": [
+        "Rossi F.",
+        "Fredkin B.",
+        "Molina L.",
+        "Scilipoti N.",
+        "Gadea M."
+      ]
+    },
+    "fechas": [
+      {
+        "numero": 1,
+        "grupos": {
+          "A": [
+            "Lacave L. (P) vs Monzón M.",
+            "Colomer S. (P) vs Cancio M.",
+            "Libre: Del Pino A."
+          ],
+          "B": [
+            "Ferreyra O. (P) vs Ruiz J.",
+            "Komesu M. (P) vs Guareschi A.",
+            "Libre: Mayer D."
+          ],
+          "C": [
+            "Rossi F. (P) vs Fredkin B.",
+            "Molina L. (P) vs Scilipoti N.",
+            "Libre: Gadea M."
+          ]
+        }
+      },
+      {
+        "numero": 2,
+        "grupos": {
+          "A": [
+            "Cancio M. (P) vs Lacave L.",
+            "Colomer S. (P) vs Del Pino A.",
+            "Libre: Monzón M."
+          ],
+          "B": [
+            "Guareschi A. (P) vs Ferreyra O.",
+            "Komesu M. (P) vs Mayer D.",
+            "Libre: Ruiz J."
+          ],
+          "C": [
+            "Scilipoti N. (P) vs Rossi F.",
+            "Molina L. (P) vs Gadea M.",
+            "Libre: Fredkin B."
+          ]
+        }
+      },
+      {
+        "numero": 3,
+        "grupos": {
+          "A": [
+            "Lacave L. (P) vs Colomer S.",
+            "Del Pino A. (P) vs Monzón M.",
+            "Libre: Cancio M."
+          ],
+          "B": [
+            "Ferreyra O. (P) vs Komesu M.",
+            "Mayer D. (P) vs Ruiz J.",
+            "Libre: Guareschi A."
+          ],
+          "C": [
+            "Rossi F. (P) vs Molina L.",
+            "Gadea M. (P) vs Fredkin B.",
+            "Libre: Scilipoti N."
+          ]
+        }
+      },
+      {
+        "numero": 4,
+        "grupos": {
+          "A": [
+            "Del Pino A. (P) vs Lacave L.",
+            "Monzón M. (P) vs Cancio M.",
+            "Libre: Colomer S."
+          ],
+          "B": [
+            "Mayer D. (P) vs Ferreyra O.",
+            "Ruiz J. (P) vs Guareschi A.",
+            "Libre: Komesu M."
+          ],
+          "C": [
+            "Gadea M. (P) vs Rossi F.",
+            "Fredkin B. (P) vs Scilipoti N.",
+            "Libre: Molina L."
+          ]
+        }
+      },
+      {
+        "numero": 5,
+        "grupos": {
+          "A": [
+            "Monzón M. (P) vs Colomer S.",
+            "Cancio M. (P) vs Del Pino A.",
+            "Libre: Lacave L."
+          ],
+          "B": [
+            "Ruiz J. (P) vs Komesu M.",
+            "Guareschi A. (P) vs Mayer D.",
+            "Libre: Ferreyra O."
+          ],
+          "C": [
+            "Fredkin B. (P) vs Molina L.",
+            "Scilipoti N. (P) vs Gadea M.",
+            "Libre: Rossi F."
+          ]
+        }
+      }
+    ],
+    "nota": "(P): Jugador asignado para llevar pelotas en ese partido.",
+    "inconsistenciasPendientes": [
+      "Grupo A - Cancio M. a Cancio M. 6-4/6-1: no se carga porque Cancio M. no puede jugar contra sí mismo; rival pendiente de confirmación."
+    ]
+  }
