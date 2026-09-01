@@ -168,16 +168,16 @@ function aggregateCareerFromRankingRows(
 }
 
 export async function buildPublicPlayerProfile(prisma: PrismaClient, playerId: string) {
-  const [player, ctx, allRankingRowsRaw, bestHistoricalRanking] = await Promise.all([
-    prisma.player.findUnique({ where: { id: playerId } }),
+  const player = await prisma.player.findUnique({ where: { id: playerId } });
+  if (!player) return null;
+
+  const [ctx, allRankingRowsRaw, bestHistoricalRanking] = await Promise.all([
     loadPhaseMatchContext(prisma),
     prisma.leagueRankingRow.findMany({
       include: { player: { select: { id: true, name: true, category: true, profileImage: true } } },
     }),
     computeBestHistoricalLeagueRank(prisma, playerId),
   ]);
-
-  if (!player) return null;
 
   const currentLeague = await resolvePlayerCurrentLeagueById(prisma, player);
 

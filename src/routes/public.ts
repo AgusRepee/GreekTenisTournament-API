@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
+import { withQueryTimeout } from '../lib/queryTimeout.js';
 import { findTournamentPublicMetaById } from '../services/tournamentMetaQuery.js';
-import { buildPublicPlayerProfile } from '../services/buildPublicPlayerProfile.js';
 import {
   buildPublicGroupStandings,
   findTournamentBySlugOrId,
 } from '../services/buildPublicGroupStandings.js';
 import { pickBestMatchScore } from '../services/pickBestMatchScore.js';
 import {
+  fetchPublicPlayerProfile,
   fetchPublicPlayersCatalog,
   fetchPublicRankingsCatalog,
   fetchPublicTournamentsCatalog,
@@ -111,10 +112,14 @@ publicRouter.get('/schedule', async (req, res, next) => {
 publicRouter.get('/schedules', async (req, res, next) => {
   try {
     const tid = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
-    const rows = await prisma.tournamentScheduleEntry.findMany({
-      where: tid ? { tournamentId: tid } : undefined,
-      orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
-    });
+    const rows = await withQueryTimeout(
+      prisma.tournamentScheduleEntry.findMany({
+        where: tid ? { tournamentId: tid } : undefined,
+        orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
+        take: 1000,
+      }),
+      'public.schedules',
+    );
     res.json(rows);
   } catch (e) {
     next(e);
@@ -252,22 +257,26 @@ publicRouter.get('/group-standings', async (req, res, next) => {
 publicRouter.get('/match-results', async (req, res, next) => {
   try {
     const tid = typeof req.query.tournamentId === 'string' ? req.query.tournamentId.trim() : '';
-    const rows = await prisma.matchResult.findMany({
-      where: tid ? { tournamentId: tid } : undefined,
-      orderBy: [{ tournamentId: 'asc' }, { roundNum: 'asc' }, { updatedAt: 'desc' }],
-      include: {
-        match: {
-          select: {
-            id: true,
-            tournamentId: true,
-            group: { select: { id: true, key: true, displayName: true } },
-            player1: { select: { id: true, name: true, displayName: true } },
-            player2: { select: { id: true, name: true, displayName: true } },
-            winner: { select: { id: true, name: true, displayName: true } },
+    const rows = await withQueryTimeout(
+      prisma.matchResult.findMany({
+        where: tid ? { tournamentId: tid } : undefined,
+        orderBy: [{ tournamentId: 'asc' }, { roundNum: 'asc' }, { updatedAt: 'desc' }],
+        take: 1000,
+        include: {
+          match: {
+            select: {
+              id: true,
+              tournamentId: true,
+              group: { select: { id: true, key: true, displayName: true } },
+              player1: { select: { id: true, name: true, displayName: true } },
+              player2: { select: { id: true, name: true, displayName: true } },
+              winner: { select: { id: true, name: true, displayName: true } },
+            },
           },
         },
-      },
-    });
+      }),
+      'public.matchResults',
+    );
     res.json(rows);
   } catch (e) {
     next(e);
@@ -420,7 +429,7 @@ publicRouter.get('/players', async (_req, res, next) => {
 
 publicRouter.get('/players/:id', async (req, res, next) => {
   try {
-    const payload = await buildPublicPlayerProfile(prisma, req.params.id);
+    const payload = await fetchPublicPlayerProfile(req.params.id);
     if (!payload) {
       res.status(404).json({ error: 'Not found' });
       return;

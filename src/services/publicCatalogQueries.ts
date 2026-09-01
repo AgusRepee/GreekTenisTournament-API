@@ -5,6 +5,7 @@ import { readPublicCacheTtlMs, TimedCache } from '../lib/timedCache.js';
 import { mergeActiveRosterRankingRows } from './activeRosterRankingRows.js';
 import { buildCurrentLeagueMap } from './playerCurrentLeague.js';
 import { rankPublicRankingRows, type RankingRowWithPlayer } from './rankingPublicSort.js';
+import { buildPublicPlayerProfile } from './buildPublicPlayerProfile.js';
 
 const catalogCache = new TimedCache<unknown>(readPublicCacheTtlMs());
 
@@ -174,6 +175,19 @@ export async function fetchPublicRankingsCatalog(leagueNum: number | null) {
     };
   }
 
+  catalogCache.set(key, payload);
+  return payload;
+}
+
+export async function fetchPublicPlayerProfile(playerId: string) {
+  const key = `profile:${playerId}`;
+  const hit = catalogCache.get(key);
+  if (hit !== undefined) return hit;
+
+  const payload = await withQueryTimeout(
+    buildPublicPlayerProfile(prisma, playerId),
+    'public.playerProfile',
+  );
   catalogCache.set(key, payload);
   return payload;
 }
