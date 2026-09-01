@@ -61,7 +61,7 @@
     "jsonwebtoken": "^9.0.3",
     "mariadb": "3.4.5",
     "mysql2": "^3.11.0",
-    "nodemailer": "^8.0.9"
+    "nodemailer": "^9.1.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
@@ -74,5 +74,8 @@
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vitest": "^3.2.6"
+  },
+  "overrides": {
+    "esbuild": "^0.28.2"
   }
 }
