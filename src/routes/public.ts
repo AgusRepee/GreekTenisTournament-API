@@ -2,15 +2,14 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { withQueryTimeout } from '../lib/queryTimeout.js';
 import { findTournamentPublicMetaById } from '../services/tournamentMetaQuery.js';
-import {
-  buildPublicGroupStandings,
-  findTournamentBySlugOrId,
-} from '../services/buildPublicGroupStandings.js';
+import { findTournamentBySlugOrId } from '../services/buildPublicGroupStandings.js';
 import { pickBestMatchScore } from '../services/pickBestMatchScore.js';
 import {
+  fetchPublicGroupStandings,
   fetchPublicPlayerProfile,
   fetchPublicPlayersCatalog,
   fetchPublicRankingsCatalog,
+  fetchPublicTournamentDetail,
   fetchPublicTournamentsCatalog,
 } from '../services/publicCatalogQueries.js';
 
@@ -223,7 +222,7 @@ publicRouter.get('/tournaments/:slug/group-standings', async (req, res, next) =>
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    const payload = await buildPublicGroupStandings(prisma, hit.id);
+    const payload = await fetchPublicGroupStandings(hit.id);
     if (!payload) {
       res.status(404).json({ error: 'Not found' });
       return;
@@ -242,7 +241,7 @@ publicRouter.get('/group-standings', async (req, res, next) => {
       res.status(400).json({ error: 'tournamentId query required' });
       return;
     }
-    const payload = await buildPublicGroupStandings(prisma, tid);
+    const payload = await fetchPublicGroupStandings(tid);
     if (!payload) {
       res.status(404).json({ error: 'Not found' });
       return;
@@ -308,101 +307,12 @@ publicRouter.get('/tournaments/:slug/elimination', async (req, res, next) => {
 
 publicRouter.get('/tournaments/:slug', async (req, res, next) => {
   try {
-    const row = await prisma.tournament.findFirst({
-      where: { OR: [{ slug: req.params.slug }, { id: req.params.slug }] },
-      include: {
-        groups: {
-          orderBy: { key: 'asc' },
-          include: {
-            players: {
-              orderBy: { seed: 'asc' },
-              include: { player: { select: { id: true, name: true, displayName: true } } },
-            },
-          },
-        },
-        leagues: { orderBy: { leagueNum: 'asc' }, include: { elimination: true } },
-      },
-    });
-    if (!row) {
+    const payload = await fetchPublicTournamentDetail(req.params.slug);
+    if (!payload) {
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    const [matches, matchResults, schedules, groupStandings] = await Promise.all([
-      prisma.match.findMany({
-        where: { tournamentId: row.id },
-        orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }, { roundLabel: 'asc' }, { id: 'asc' }],
-        include: {
-          group: { select: { id: true, key: true, displayName: true } },
-          tournamentLeague: { select: { id: true, leagueNum: true } },
-          player1: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
-          player2: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
-          winner: { select: { id: true, name: true, displayName: true } },
-          loser: { select: { id: true, name: true, displayName: true } },
-        },
-      }),
-      prisma.matchResult.findMany({
-        where: { tournamentId: row.id },
-        orderBy: [{ roundNum: 'asc' }, { updatedAt: 'desc' }],
-        include: {
-          match: {
-            select: {
-              id: true,
-              group: { select: { id: true, key: true, displayName: true } },
-              player1: { select: { id: true, name: true, displayName: true } },
-              player2: { select: { id: true, name: true, displayName: true } },
-              winner: { select: { id: true, name: true, displayName: true } },
-            },
-          },
-        },
-      }),
-      prisma.tournamentScheduleEntry.findMany({
-        where: { tournamentId: row.id },
-        orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
-      }),
-      buildPublicGroupStandings(prisma, row.id),
-    ]);
-
-    const elimination = row.leagues.map((league) => ({
-      league,
-      bracket: league.elimination,
-      matches: matches.filter((m) => m.tournamentLeagueId === league.id && m.stage !== 'group' && m.stage !== 'interzonal'),
-    }));
-
-    const tournament = {
-      id: row.id,
-      slug: row.slug,
-      name: row.name,
-      tournamentType: row.tournamentType,
-      status: row.status,
-      startDate: row.startDate,
-      endDate: row.endDate,
-      location: row.location,
-      coverImage: row.coverImage,
-      slotsTotal: row.slotsTotal,
-      slotsTaken: row.slotsTaken,
-      ligaDoc: row.ligaDoc,
-      preclasificacionJson: row.preclasificacionJson,
-      groupRosterOverrideJson: row.groupRosterOverrideJson,
-      winnerId: row.winnerId,
-      finalistId: row.finalistId,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    };
-
-    res.json({
-      ...tournament,
-      tournament,
-      leagues: row.leagues,
-      groups: row.groups,
-      matches,
-      matchResults,
-      schedules,
-      standings: groupStandings?.groups ?? [],
-      groupStandings: groupStandings?.groups ?? [],
-      elimination,
-      preclasificacion: row.preclasificacionJson ?? null,
-      groupRosterOverrideJson: row.groupRosterOverrideJson ?? null,
-    });
+    res.json(payload);
   } catch (e) {
     next(e);
   }

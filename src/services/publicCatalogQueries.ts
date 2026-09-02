@@ -6,6 +6,7 @@ import { mergeActiveRosterRankingRows } from './activeRosterRankingRows.js';
 import { buildCurrentLeagueMap } from './playerCurrentLeague.js';
 import { rankPublicRankingRows, type RankingRowWithPlayer } from './rankingPublicSort.js';
 import { buildPublicPlayerProfile } from './buildPublicPlayerProfile.js';
+import { buildPublicGroupStandings } from './buildPublicGroupStandings.js';
 
 const catalogCache = new TimedCache<unknown>(readPublicCacheTtlMs());
 
@@ -187,6 +188,125 @@ export async function fetchPublicPlayerProfile(playerId: string) {
   const payload = await withQueryTimeout(
     buildPublicPlayerProfile(prisma, playerId),
     'public.playerProfile',
+  );
+  catalogCache.set(key, payload);
+  return payload;
+}
+
+export async function fetchPublicTournamentDetail(slugOrId: string) {
+  const key = `tournamentDetail:${slugOrId}`;
+  const hit = catalogCache.get(key);
+  if (hit !== undefined) return hit;
+
+  const payload = await withQueryTimeout(buildPublicTournamentDetail(prisma, slugOrId), 'public.tournamentDetail');
+  catalogCache.set(key, payload);
+  return payload;
+}
+
+async function buildPublicTournamentDetail(prismaClient: typeof prisma, slugOrId: string) {
+  const row = await prismaClient.tournament.findFirst({
+    where: { OR: [{ slug: slugOrId }, { id: slugOrId }] },
+    include: {
+      groups: {
+        orderBy: { key: 'asc' },
+        include: {
+          players: {
+            orderBy: { seed: 'asc' },
+            include: { player: { select: { id: true, name: true, displayName: true } } },
+          },
+        },
+      },
+      leagues: { orderBy: { leagueNum: 'asc' }, include: { elimination: true } },
+    },
+  });
+  if (!row) return null;
+
+  const [matches, matchResults, schedules, groupStandings] = await Promise.all([
+    prismaClient.match.findMany({
+      where: { tournamentId: row.id },
+      orderBy: [{ scheduledDate: 'asc' }, { scheduledTime: 'asc' }, { roundLabel: 'asc' }, { id: 'asc' }],
+      include: {
+        group: { select: { id: true, key: true, displayName: true } },
+        tournamentLeague: { select: { id: true, leagueNum: true } },
+        player1: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
+        player2: { select: { id: true, name: true, displayName: true, category: true, profileImage: true } },
+        winner: { select: { id: true, name: true, displayName: true } },
+        loser: { select: { id: true, name: true, displayName: true } },
+      },
+    }),
+    prismaClient.matchResult.findMany({
+      where: { tournamentId: row.id },
+      orderBy: [{ roundNum: 'asc' }, { updatedAt: 'desc' }],
+      include: {
+        match: {
+          select: {
+            id: true,
+            group: { select: { id: true, key: true, displayName: true } },
+            player1: { select: { id: true, name: true, displayName: true } },
+            player2: { select: { id: true, name: true, displayName: true } },
+            winner: { select: { id: true, name: true, displayName: true } },
+          },
+        },
+      },
+    }),
+    prismaClient.tournamentScheduleEntry.findMany({
+      where: { tournamentId: row.id },
+      orderBy: [{ date: 'asc' }, { time: 'asc' }, { updatedAt: 'desc' }],
+    }),
+    buildPublicGroupStandings(prismaClient, row.id),
+  ]);
+
+  const elimination = row.leagues.map((league) => ({
+    league,
+    bracket: league.elimination,
+    matches: matches.filter((m) => m.tournamentLeagueId === league.id && m.stage !== 'group' && m.stage !== 'interzonal'),
+  }));
+
+  const tournament = {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    tournamentType: row.tournamentType,
+    status: row.status,
+    startDate: row.startDate,
+    endDate: row.endDate,
+    location: row.location,
+    coverImage: row.coverImage,
+    slotsTotal: row.slotsTotal,
+    slotsTaken: row.slotsTaken,
+    ligaDoc: row.ligaDoc,
+    preclasificacionJson: row.preclasificacionJson,
+    groupRosterOverrideJson: row.groupRosterOverrideJson,
+    winnerId: row.winnerId,
+    finalistId: row.finalistId,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
+
+  return {
+    ...tournament,
+    tournament,
+    leagues: row.leagues,
+    groups: row.groups,
+    matches,
+    matchResults,
+    schedules,
+    standings: groupStandings?.groups ?? [],
+    groupStandings: groupStandings?.groups ?? [],
+    elimination,
+    preclasificacion: row.preclasificacionJson ?? null,
+    groupRosterOverrideJson: row.groupRosterOverrideJson ?? null,
+  };
+}
+
+export async function fetchPublicGroupStandings(tournamentId: string) {
+  const key = `standings:${tournamentId}`;
+  const hit = catalogCache.get(key);
+  if (hit !== undefined) return hit;
+
+  const payload = await withQueryTimeout(
+    buildPublicGroupStandings(prisma, tournamentId),
+    'public.groupStandings',
   );
   catalogCache.set(key, payload);
   return payload;
