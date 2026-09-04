@@ -4,10 +4,11 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "postinstall": "node scripts/chmodPrismaEngines.mjs",
     "prepare": "npx prisma generate && npm run build",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
-    "build:deploy": "prisma generate && prisma migrate deploy && npm run build",
+    "build:deploy": "prisma generate && node scripts/chmodPrismaEngines.mjs && prisma migrate deploy && npm run build",
     "deploy:build": "npm run build:deploy",
     "build:fix": "prisma migrate resolve --rolled-back 20260514203000_admin_users && prisma migrate resolve --rolled-back 20260514204500_admin_email_password_reset && prisma generate && prisma migrate deploy && npm run build",
     "start": "node dist/index.js",
