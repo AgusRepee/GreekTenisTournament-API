@@ -8,8 +8,8 @@ const LEAGUE_NUM = 4;
 
 const groups = {
   A: ['Rios J.', 'Garcia J.', 'Oviedo M.', 'Gonzalez Días F.', 'Cardozo M.'],
-  B: ['Anetta D.', 'Repecka J.', 'Murchio M.', 'Miletta J.', 'Gonzalez Días C.'],
-  C: ['Maza S.', 'Blanco J.', 'Bauerkamper G.', 'Chantada M.', 'Vidigt F.'],
+  B: ['Anetta D.', 'Repecka J.', 'Vidigt F.', 'Miletta J.', 'Gonzalez Días C.'],
+  C: ['Maza S.', 'Blanco J.', 'Bauerkamper G.', 'Chantada M.', 'Murchio M.'],
 } as const;
 
 type SeedMatch = {
@@ -24,33 +24,33 @@ const fixtures: SeedMatch[] = [
   { group: 'A', round: 1, playerA: 'Cardozo M.', playerB: 'Rios J.', ballPlayer: 'Cardozo M.' },
   { group: 'A', round: 1, playerA: 'Oviedo M.', playerB: 'Garcia J.', ballPlayer: 'Oviedo M.' },
   { group: 'B', round: 1, playerA: 'Repecka J.', playerB: 'Anetta D.', ballPlayer: 'Repecka J.' },
-  { group: 'B', round: 1, playerA: 'Murchio M.', playerB: 'Miletta J.', ballPlayer: 'Murchio M.' },
+  { group: 'B', round: 1, playerA: 'Vidigt F.', playerB: 'Miletta J.', ballPlayer: 'Vidigt F.' },
   { group: 'C', round: 1, playerA: 'Blanco J.', playerB: 'Maza S.', ballPlayer: 'Blanco J.' },
   { group: 'C', round: 1, playerA: 'Chantada M.', playerB: 'Bauerkamper G.', ballPlayer: 'Chantada M.' },
   { group: 'A', round: 2, playerA: 'Garcia J.', playerB: 'Cardozo M.', ballPlayer: 'Garcia J.' },
   { group: 'A', round: 2, playerA: 'Oviedo M.', playerB: 'Gonzalez Días F.', ballPlayer: 'Oviedo M.' },
   { group: 'B', round: 2, playerA: 'Miletta J.', playerB: 'Repecka J.', ballPlayer: 'Miletta J.' },
-  { group: 'B', round: 2, playerA: 'Murchio M.', playerB: 'Gonzalez Días C.', ballPlayer: 'Murchio M.' },
+  { group: 'B', round: 2, playerA: 'Vidigt F.', playerB: 'Gonzalez Días C.', ballPlayer: 'Vidigt F.' },
   { group: 'C', round: 2, playerA: 'Bauerkamper G.', playerB: 'Blanco J.', ballPlayer: 'Bauerkamper G.' },
-  { group: 'C', round: 2, playerA: 'Chantada M.', playerB: 'Vidigt F.', ballPlayer: 'Chantada M.' },
+  { group: 'C', round: 2, playerA: 'Chantada M.', playerB: 'Murchio M.', ballPlayer: 'Chantada M.' },
   { group: 'A', round: 3, playerA: 'Cardozo M.', playerB: 'Oviedo M.', ballPlayer: 'Cardozo M.' },
   { group: 'A', round: 3, playerA: 'Gonzalez Días F.', playerB: 'Rios J.', ballPlayer: 'Gonzalez Días F.' },
-  { group: 'B', round: 3, playerA: 'Repecka J.', playerB: 'Murchio M.', ballPlayer: 'Repecka J.' },
+  { group: 'B', round: 3, playerA: 'Repecka J.', playerB: 'Vidigt F.', ballPlayer: 'Repecka J.' },
   { group: 'B', round: 3, playerA: 'Gonzalez Días C.', playerB: 'Anetta D.', ballPlayer: 'Gonzalez Días C.' },
   { group: 'C', round: 3, playerA: 'Blanco J.', playerB: 'Chantada M.', ballPlayer: 'Blanco J.' },
-  { group: 'C', round: 3, playerA: 'Vidigt F.', playerB: 'Maza S.', ballPlayer: 'Vidigt F.' },
+  { group: 'C', round: 3, playerA: 'Murchio M.', playerB: 'Maza S.', ballPlayer: 'Murchio M.' },
   { group: 'A', round: 4, playerA: 'Gonzalez Días F.', playerB: 'Cardozo M.', ballPlayer: 'Gonzalez Días F.' },
   { group: 'A', round: 4, playerA: 'Rios J.', playerB: 'Garcia J.', ballPlayer: 'Rios J.' },
   { group: 'B', round: 4, playerA: 'Gonzalez Días C.', playerB: 'Repecka J.', ballPlayer: 'Gonzalez Días C.' },
   { group: 'B', round: 4, playerA: 'Anetta D.', playerB: 'Miletta J.', ballPlayer: 'Anetta D.' },
-  { group: 'C', round: 4, playerA: 'Vidigt F.', playerB: 'Blanco J.', ballPlayer: 'Vidigt F.' },
+  { group: 'C', round: 4, playerA: 'Murchio M.', playerB: 'Blanco J.', ballPlayer: 'Murchio M.' },
   { group: 'C', round: 4, playerA: 'Maza S.', playerB: 'Bauerkamper G.', ballPlayer: 'Maza S.' },
   { group: 'A', round: 5, playerA: 'Rios J.', playerB: 'Oviedo M.', ballPlayer: 'Rios J.' },
   { group: 'A', round: 5, playerA: 'Garcia J.', playerB: 'Gonzalez Días F.', ballPlayer: 'Garcia J.' },
-  { group: 'B', round: 5, playerA: 'Anetta D.', playerB: 'Murchio M.', ballPlayer: 'Anetta D.' },
+  { group: 'B', round: 5, playerA: 'Anetta D.', playerB: 'Vidigt F.', ballPlayer: 'Anetta D.' },
   { group: 'B', round: 5, playerA: 'Miletta J.', playerB: 'Gonzalez Días C.', ballPlayer: 'Miletta J.' },
   { group: 'C', round: 5, playerA: 'Maza S.', playerB: 'Chantada M.', ballPlayer: 'Maza S.' },
-  { group: 'C', round: 5, playerA: 'Bauerkamper G.', playerB: 'Vidigt F.', ballPlayer: 'Bauerkamper G.' },
+  { group: 'C', round: 5, playerA: 'Bauerkamper G.', playerB: 'Murchio M.', ballPlayer: 'Bauerkamper G.' },
 ];
 
 const createdPlayers: string[] = [];
@@ -123,40 +123,40 @@ function ligaDoc(): Prisma.InputJsonValue {
         numero: 1,
         grupos: {
           A: ['Cardozo M. (P) vs Rios J.', 'Oviedo M. (P) vs Garcia J.', 'Libre: Gonzalez Días F.'],
-          B: ['Repecka J. (P) vs Anetta D.', 'Murchio M. (P) vs Miletta J.', 'Libre: Gonzalez Días C.'],
-          C: ['Blanco J. (P) vs Maza S.', 'Chantada M. (P) vs Bauerkamper G.', 'Libre: Vidigt F.'],
+          B: ['Repecka J. (P) vs Anetta D.', 'Vidigt F. (P) vs Miletta J.', 'Libre: Gonzalez Días C.'],
+          C: ['Blanco J. (P) vs Maza S.', 'Chantada M. (P) vs Bauerkamper G.', 'Libre: Murchio M.'],
         },
       },
       {
         numero: 2,
         grupos: {
           A: ['Garcia J. (P) vs Cardozo M.', 'Oviedo M. (P) vs Gonzalez Días F.', 'Libre: Rios J.'],
-          B: ['Miletta J. (P) vs Repecka J.', 'Murchio M. (P) vs Gonzalez Días C.', 'Libre: Anetta D.'],
-          C: ['Bauerkamper G. (P) vs Blanco J.', 'Chantada M. (P) vs Vidigt F.', 'Libre: Maza S.'],
+          B: ['Miletta J. (P) vs Repecka J.', 'Vidigt F. (P) vs Gonzalez Días C.', 'Libre: Anetta D.'],
+          C: ['Bauerkamper G. (P) vs Blanco J.', 'Chantada M. (P) vs Murchio M.', 'Libre: Maza S.'],
         },
       },
       {
         numero: 3,
         grupos: {
           A: ['Cardozo M. (P) vs Oviedo M.', 'Gonzalez Días F. (P) vs Rios J.', 'Libre: Garcia J.'],
-          B: ['Repecka J. (P) vs Murchio M.', 'Gonzalez Días C. (P) vs Anetta D.', 'Libre: Miletta J.'],
-          C: ['Blanco J. (P) vs Chantada M.', 'Vidigt F. (P) vs Maza S.', 'Libre: Bauerkamper G.'],
+          B: ['Repecka J. (P) vs Vidigt F.', 'Gonzalez Días C. (P) vs Anetta D.', 'Libre: Miletta J.'],
+          C: ['Blanco J. (P) vs Chantada M.', 'Murchio M. (P) vs Maza S.', 'Libre: Bauerkamper G.'],
         },
       },
       {
         numero: 4,
         grupos: {
           A: ['Gonzalez Días F. (P) vs Cardozo M.', 'Rios J. (P) vs Garcia J.', 'Libre: Oviedo M.'],
-          B: ['Gonzalez Días C. (P) vs Repecka J.', 'Anetta D. (P) vs Miletta J.', 'Libre: Murchio M.'],
-          C: ['Vidigt F. (P) vs Blanco J.', 'Maza S. (P) vs Bauerkamper G.', 'Libre: Chantada M.'],
+          B: ['Gonzalez Días C. (P) vs Repecka J.', 'Anetta D. (P) vs Miletta J.', 'Libre: Vidigt F.'],
+          C: ['Murchio M. (P) vs Blanco J.', 'Maza S. (P) vs Bauerkamper G.', 'Libre: Chantada M.'],
         },
       },
       {
         numero: 5,
         grupos: {
           A: ['Rios J. (P) vs Oviedo M.', 'Garcia J. (P) vs Gonzalez Días F.', 'Libre: Cardozo M.'],
-          B: ['Anetta D. (P) vs Murchio M.', 'Miletta J. (P) vs Gonzalez Días C.', 'Libre: Repecka J.'],
-          C: ['Maza S. (P) vs Chantada M.', 'Bauerkamper G. (P) vs Vidigt F.', 'Libre: Blanco J.'],
+          B: ['Anetta D. (P) vs Vidigt F.', 'Miletta J. (P) vs Gonzalez Días C.', 'Libre: Repecka J.'],
+          C: ['Maza S. (P) vs Chantada M.', 'Bauerkamper G. (P) vs Murchio M.', 'Libre: Blanco J.'],
         },
       },
     ],

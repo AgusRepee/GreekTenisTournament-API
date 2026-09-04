@@ -10,7 +10,7 @@ const INTERZONAL_GROUP = 'Interzonal';
 const groups = {
   A: ['Gimenez F.', 'Merlo S.', 'Chantada S.', 'Vila E.'],
   B: ['Tellechea L.', 'Cirigliano D.', 'Sola M.', 'Oswald J.'],
-  C: ['Antuña A.', 'Peralta G.', 'Avalos G.', 'Cellilli M.'],
+  C: ['Hernández E.', 'Peralta G.', 'Avalos G.', 'Cellilli M.'],
 } as const;
 
 type SeedMatch = {
@@ -26,22 +26,22 @@ const fixtures: SeedMatch[] = [
   { group: 'A', round: 1, playerA: 'Chantada S.', playerB: 'Vila E.', ballPlayer: 'Chantada S.' },
   { group: 'B', round: 1, playerA: 'Tellechea L.', playerB: 'Cirigliano D.', ballPlayer: 'Tellechea L.' },
   { group: 'B', round: 1, playerA: 'Sola M.', playerB: 'Oswald J.', ballPlayer: 'Sola M.' },
-  { group: 'C', round: 1, playerA: 'Antuña A.', playerB: 'Peralta G.', ballPlayer: 'Antuña A.' },
+  { group: 'C', round: 1, playerA: 'Hernández E.', playerB: 'Peralta G.', ballPlayer: 'Hernández E.' },
   { group: 'C', round: 1, playerA: 'Avalos G.', playerB: 'Cellilli M.', ballPlayer: 'Avalos G.' },
   { group: 'A', round: 2, playerA: 'Gimenez F.', playerB: 'Chantada S.', ballPlayer: 'Gimenez F.' },
   { group: 'A', round: 2, playerA: 'Vila E.', playerB: 'Merlo S.', ballPlayer: 'Vila E.' },
   { group: 'B', round: 2, playerA: 'Sola M.', playerB: 'Tellechea L.', ballPlayer: 'Sola M.' },
   { group: 'B', round: 2, playerA: 'Cirigliano D.', playerB: 'Oswald J.', ballPlayer: 'Cirigliano D.' },
-  { group: 'C', round: 2, playerA: 'Antuña A.', playerB: 'Avalos G.', ballPlayer: 'Antuña A.' },
+  { group: 'C', round: 2, playerA: 'Hernández E.', playerB: 'Avalos G.', ballPlayer: 'Hernández E.' },
   { group: 'C', round: 2, playerA: 'Peralta G.', playerB: 'Cellilli M.', ballPlayer: 'Peralta G.' },
   { group: 'A', round: 3, playerA: 'Vila E.', playerB: 'Gimenez F.', ballPlayer: 'Vila E.' },
   { group: 'A', round: 3, playerA: 'Merlo S.', playerB: 'Chantada S.', ballPlayer: 'Merlo S.' },
   { group: 'B', round: 3, playerA: 'Oswald J.', playerB: 'Tellechea L.', ballPlayer: 'Oswald J.' },
   { group: 'B', round: 3, playerA: 'Sola M.', playerB: 'Cirigliano D.', ballPlayer: 'Sola M.' },
-  { group: 'C', round: 3, playerA: 'Cellilli M.', playerB: 'Antuña A.', ballPlayer: 'Cellilli M.' },
+  { group: 'C', round: 3, playerA: 'Cellilli M.', playerB: 'Hernández E.', ballPlayer: 'Cellilli M.' },
   { group: 'C', round: 3, playerA: 'Peralta G.', playerB: 'Avalos G.', ballPlayer: 'Peralta G.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Cellilli M.', playerB: 'Gimenez F.', ballPlayer: 'Cellilli M.' },
-  { group: INTERZONAL_GROUP, round: 4, playerA: 'Merlo S.', playerB: 'Antuña A.', ballPlayer: 'Merlo S.' },
+  { group: INTERZONAL_GROUP, round: 4, playerA: 'Merlo S.', playerB: 'Hernández E.', ballPlayer: 'Merlo S.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Chantada S.', playerB: 'Sola M.', ballPlayer: 'Chantada S.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Oswald J.', playerB: 'Vila E.', ballPlayer: 'Oswald J.' },
   { group: INTERZONAL_GROUP, round: 4, playerA: 'Tellechea L.', playerB: 'Peralta G.', ballPlayer: 'Tellechea L.' },
@@ -145,7 +145,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Gimenez F. (P) vs Merlo S.', 'Chantada S. (P) vs Vila E.'],
           B: ['Tellechea L. (P) vs Cirigliano D.', 'Sola M. (P) vs Oswald J.'],
-          C: ['Antuña A. (P) vs Peralta G.', 'Avalos G. (P) vs Cellilli M.'],
+          C: ['Hernández E. (P) vs Peralta G.', 'Avalos G. (P) vs Cellilli M.'],
         },
       },
       {
@@ -153,7 +153,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Gimenez F. (P) vs Chantada S.', 'Vila E. (P) vs Merlo S.'],
           B: ['Sola M. (P) vs Tellechea L.', 'Cirigliano D. (P) vs Oswald J.'],
-          C: ['Antuña A. (P) vs Avalos G.', 'Peralta G. (P) vs Cellilli M.'],
+          C: ['Hernández E. (P) vs Avalos G.', 'Peralta G. (P) vs Cellilli M.'],
         },
       },
       {
@@ -161,7 +161,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         grupos: {
           A: ['Vila E. (P) vs Gimenez F.', 'Merlo S. (P) vs Chantada S.'],
           B: ['Oswald J. (P) vs Tellechea L.', 'Sola M. (P) vs Cirigliano D.'],
-          C: ['Cellilli M. (P) vs Antuña A.', 'Peralta G. (P) vs Avalos G.'],
+          C: ['Cellilli M. (P) vs Hernández E.', 'Peralta G. (P) vs Avalos G.'],
         },
       },
       {
@@ -169,7 +169,7 @@ function ligaDoc(): Prisma.InputJsonValue {
         tipo: 'interzonal',
         partidos: [
           'Cellilli M. (P) vs Gimenez F.',
-          'Merlo S. (P) vs Antuña A.',
+          'Merlo S. (P) vs Hernández E.',
           'Chantada S. (P) vs Sola M.',
           'Oswald J. (P) vs Vila E.',
           'Tellechea L. (P) vs Peralta G.',
