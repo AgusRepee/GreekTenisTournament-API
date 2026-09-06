@@ -13,6 +13,10 @@ import { QueryTimeoutError } from './lib/queryTimeout.js';
 
 export function createApp(): express.Application {
   const app = express();
+  // Hostinger's reverse proxy sits in front of the Node process; without this,
+  // req.ip resolves to the proxy's own address for every visitor, which breaks
+  // any per-client logic (rate limiting) by bucketing all traffic together.
+  app.set('trust proxy', 1);
   const corsEnv = process.env.CORS_ORIGIN?.split(',').map((s) => s.trim()).filter(Boolean);
   const corsOrigin = corsEnv?.length ? corsEnv : process.env.NODE_ENV === 'production' ? false : true;
 

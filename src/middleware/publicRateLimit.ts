@@ -7,17 +7,28 @@ type Bucket = { count: number; resetAt: number };
 
 const buckets = new Map<string, Bucket>();
 
-function clientKey(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.trim()) {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return req.socket.remoteAddress ?? 'unknown';
+/**
+ * If req.ip still resolves to a loopback/private address, the app can't tell
+ * visitors apart (misconfigured or unexpected reverse-proxy setup) — bucketing
+ * everyone under one key would rate-limit the whole site off a few visitors'
+ * combined traffic. Fail open instead of turning a proxy quirk into an outage.
+ */
+function isUnreliableClientIp(ip: string): boolean {
+  if (ip === '127.0.0.1' || ip === '::1' || ip === 'unknown') return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(ip)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(ip)) return true;
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(ip)) return true;
+  return false;
 }
 
 /** Limita tráfico a catálogo público (rankings, players, tournaments, news). */
 export function publicRateLimit(req: Request, res: Response, next: NextFunction): void {
-  const key = clientKey(req);
+  const key = req.ip ?? 'unknown';
+  if (isUnreliableClientIp(key)) {
+    next();
+    return;
+  }
+
   const now = Date.now();
   const bucket = buckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
