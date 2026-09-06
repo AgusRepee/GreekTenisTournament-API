@@ -1,7 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
 
 const WINDOW_MS = 60_000;
-const MAX_REQUESTS = 40;
+// Was 40. The public catalog endpoints are now all cached (120s TTL) after the
+// query-storm audit, so the DB is no longer the thing this limit protects —
+// raised sharply as a stopgap after req.ip still bucketed unrelated visitors
+// together in production (see the diagnostic log below to find the real cause).
+const MAX_REQUESTS = 600;
 
 type Bucket = { count: number; resetAt: number };
 
@@ -33,6 +37,12 @@ export function publicRateLimit(req: Request, res: Response, next: NextFunction)
   const bucket = buckets.get(key);
   if (!bucket || bucket.resetAt <= now) {
     buckets.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    // TEMPORARY: diagnosing whether req.ip resolves to distinct real client IPs
+    // in production or still collapses everyone behind Hostinger's proxy chain.
+    // Remove once confirmed.
+    console.log(
+      `[publicRateLimit] new bucket key=${key} xff=${req.headers['x-forwarded-for'] ?? 'none'} socket=${req.socket.remoteAddress ?? 'none'}`,
+    );
     next();
     return;
   }
