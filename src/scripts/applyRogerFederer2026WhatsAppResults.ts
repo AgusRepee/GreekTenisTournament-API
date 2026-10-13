@@ -54,6 +54,93 @@ function normScore(s: string): string {
   return s.replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
+/** Extrae pares de games por set (ej. "2-6 / 3-6" → [[2,6],[3,6]]). */
+export function parseSetPairs(score: string): number[][] {
+  const cleaned = score
+    .replace(/\by\s+retiro\b/gi, '')
+    .replace(/\babandono\b/gi, '')
+    .trim();
+  const out: number[][] = [];
+  const re = /(\d+)\s*-\s*(\d+)/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(cleaned)) !== null) {
+    out.push([Number(m[1]), Number(m[2])]);
+  }
+  return out;
+}
+
+/**
+ * Convierte sets a perspectiva fixture (player1 games, player2 games).
+ * - stored: el texto ya viene en orden player1-player2 (como en Match.score).
+ * - incoming: cada "X-Y" suele ser games ganador-perdedor; se orienta con winnerId.
+ */
+export function setsInFixtureOrder(
+  pairs: number[][],
+  p1Id: string,
+  _p2Id: string,
+  winnerId: string | null,
+  mode: 'stored' | 'incoming',
+): number[][] {
+  if (mode === 'stored' || !winnerId || pairs.length === 0) {
+    return pairs.map(([a, b]) => [a, b]);
+  }
+  const winnerIsP1 = winnerId === p1Id;
+  return pairs.map(([a, b]) => {
+    if (a === b) return [a, b];
+    const firstWonSet = a > b;
+    if (winnerIsP1) {
+      return firstWonSet ? [a, b] : [b, a];
+    }
+    return firstWonSet ? [b, a] : [a, b];
+  });
+}
+
+export function setsEqual(a: number[][], b: number[][]): boolean {
+  if (a.length !== b.length || a.length === 0) return false;
+  return a.every((s, i) => s[0] === b[i]![0] && s[1] === b[i]![1]);
+}
+
+/** ¿Mismo resultado en perspectiva player1/player2 del partido? */
+export function scoresEquivalentForFixture(
+  storedScore: string,
+  incomingScore: string,
+  winnerId: string,
+  p1Id: string,
+  p2Id: string,
+): boolean {
+  const stored = setsInFixtureOrder(parseSetPairs(storedScore), p1Id, p2Id, null, 'stored');
+  const incoming = setsInFixtureOrder(parseSetPairs(incomingScore), p1Id, p2Id, winnerId, 'incoming');
+  return setsEqual(stored, incoming);
+}
+
+export function shouldSkipCompletedMatch(
+  match: {
+    completed: boolean;
+    score: string | null;
+    winnerId: string | null;
+    player1Id: string;
+    player2Id: string;
+  },
+  incomingScore: string,
+  incomingWinnerId: string,
+): { skip: boolean; conflict: boolean; reason?: string } {
+  if (!match.completed) return { skip: false, conflict: false };
+  if (match.winnerId && match.winnerId !== incomingWinnerId) {
+    return { skip: false, conflict: true, reason: 'ganador distinto' };
+  }
+  const stored = match.score?.trim() ?? '';
+  if (!stored) return { skip: false, conflict: false };
+  if (normScore(stored) === normScore(incomingScore)) {
+    return { skip: true, conflict: false, reason: 'mismo texto' };
+  }
+  if (
+    scoresEquivalentForFixture(stored, incomingScore, incomingWinnerId, match.player1Id, match.player2Id)
+  ) {
+    return { skip: true, conflict: false, reason: 'score equivalente (perspectiva fixture)' };
+  }
+  return { skip: false, conflict: true, reason: 'otro marcador' };
+}
+
 function winnerIdFor(
   match: { player1: { id: string; name: string; displayName: string | null }; player2: { id: string; name: string; displayName: string | null } },
   winnerLabel: string,
@@ -96,12 +183,26 @@ async function applyOne(row: ResultRow, report: { loaded: string[]; skipped: str
 
   const status: MatchResultStatus = row.status ?? 'played';
   const score = row.score.trim();
-  if (match.completed && match.score && normScore(match.score) === normScore(score)) {
-    report.skipped.push(`${match.id} (ya cargado)`);
+  const winnerId = winnerIdFor(match, row.winner);
+  const skipCheck = shouldSkipCompletedMatch(
+    {
+      completed: match.completed,
+      score: match.score,
+      winnerId: match.winnerId,
+      player1Id: match.player1Id,
+      player2Id: match.player2Id,
+    },
+    score,
+    winnerId,
+  );
+  if (skipCheck.conflict) {
+    report.conflicts.push(
+      `${match.id} ya tiene otro resultado (${skipCheck.reason}): ${match.score ?? '(sin score)'}`,
+    );
     return;
   }
-  if (match.completed && match.score && normScore(match.score) !== normScore(score)) {
-    report.conflicts.push(`${match.id} ya tiene otro resultado: ${match.score}`);
+  if (skipCheck.skip) {
+    report.skipped.push(`${match.id} (ya cargado${skipCheck.reason ? `, ${skipCheck.reason}` : ''})`);
     return;
   }
 
@@ -117,7 +218,6 @@ async function applyOne(row: ResultRow, report: { loaded: string[]; skipped: str
   const playerA = match.player1.name;
   const playerB = match.player2.name;
   const key = dedupeKey(row.tournamentId, groupKey, roundNum, playerA, playerB);
-  const winnerId = winnerIdFor(match, row.winner);
   const loserId = winnerId === match.player1Id ? match.player2Id : match.player1Id;
   const playedAt = new Date(`${parseDateIso(row.date)}T12:00:00.000Z`);
   const scheduleStatus: ScheduleStatus = 'confirmed';
@@ -299,7 +399,56 @@ export async function applyRogerFederer2026WhatsAppResults(filter?: {
   return report;
 }
 
+/** Chequeo local sin BD: Miletta vs González (prod-like) + casos borde. */
+export function runEquivalenceDryCheck(): { ok: boolean; cases: unknown[] } {
+  const p1 = 'p-miletta';
+  const p2 = 'p-gonzalez';
+  const winnerP2 = p2;
+  const cases = [
+    {
+      name: 'Miletta vs Gonzalez (WhatsApp vs prod fixture score)',
+      stored: '2-6 3-6',
+      incoming: '6-2 / 6-3',
+      equivalent: scoresEquivalentForFixture('2-6 3-6', '6-2 / 6-3', winnerP2, p1, p2),
+      skip: shouldSkipCompletedMatch(
+        { completed: true, score: '2-6 3-6', winnerId: p2, player1Id: p1, player2Id: p2 },
+        '6-2 / 6-3',
+        winnerP2,
+      ),
+    },
+    {
+      name: 'mismo texto',
+      skip: shouldSkipCompletedMatch(
+        { completed: true, score: '6-4 6-2', winnerId: p1, player1Id: p1, player2Id: p2 },
+        '6-4 / 6-2',
+        p1,
+      ),
+    },
+    {
+      name: 'conflicto real distinto ganador',
+      skip: shouldSkipCompletedMatch(
+        { completed: true, score: '2-6 3-6', winnerId: p2, player1Id: p1, player2Id: p2 },
+        '6-2 / 6-3',
+        p1,
+      ),
+    },
+  ];
+  const ok =
+    cases[0]!.equivalent === true &&
+    cases[0]!.skip.skip === true &&
+    cases[0]!.skip.conflict === false &&
+    cases[1]!.skip.skip === true &&
+    cases[2]!.skip.conflict === true;
+  return { ok, cases };
+}
+
 async function main() {
+  if (process.argv.includes('--dry-check-equivalence')) {
+    const result = runEquivalenceDryCheck();
+    console.log(JSON.stringify(result, null, 2));
+    if (!result.ok) process.exitCode = 1;
+    return;
+  }
   const only = process.argv.find((a) => a.startsWith('--tournament='))?.split('=')[1];
   const filter = only ? { tournamentIds: only.split(',') } : undefined;
   const report = await applyRogerFederer2026WhatsAppResults(filter);

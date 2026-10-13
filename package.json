@@ -42,6 +42,7 @@
     "data:fix:federer-l3-rojas-araujo": "tsx src/scripts/fixRogerFedererLiga3RojasToAraujo.ts",
     "data:fix:federer-l5-hernandez-davino": "tsx src/scripts/fixRogerFedererLiga5HernandezToDavino.ts",
     "data:apply:federer-whatsapp-2026": "tsx src/scripts/applyRogerFederer2026WhatsAppResults.ts",
+    "data:apply:federer-whatsapp-2026:dry-equiv": "tsx src/scripts/applyRogerFederer2026WhatsAppResults.ts --dry-check-equivalence",
     "data:run:federer-whatsapp-2026": "tsx src/scripts/runRogerFederer2026WhatsAppUpdate.ts",
     "data:seed:federer-l5": "tsx src/scripts/seedRogerFedererLiga5Nd2026Tournament.ts",
     "data:seed:federer-l6": "tsx src/scripts/seedRogerFedererLiga6Nd2026Tournament.ts",
